@@ -97,6 +97,8 @@ If there is no GitHub release yet, build the wasm (see Development) and copy `ta
 
 In Normal mode the bottom line shows chips such as `^G Lock` and `Alt + ⌥N New Pane`, with no ``. `Ctrl +` is bold. The chip is the theme’s dark ribbon color on the ribbon gray, and the label is that gray on the bar.
 
+When a mode such as Tab or Session is active, that name sits at the far left, before `Ctrl +`, so the shortcuts read as that mode’s commands.
+
 Click a chip to run that action. Hover inverts the hit target’s colors. A combo such as `⌥←↓↑→` highlights and clicks one arrow. A chip such as `^N Resize` is nine cells, all one target.
 
 ### GNU nano display of shortcuts
