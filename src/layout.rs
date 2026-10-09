@@ -551,94 +551,94 @@ fn indicator(mode: &str) -> Option<Vec<Hint>> {
 fn mode_actions(mode: &str) -> Vec<Hint> {
     match mode {
         "pane" => vec![
-            chip("^N", "New", "New", Click::NewPane),
-            keys("^HJKL", "Change Focus", "Move", &FOCUS_HJKL),
-            chip("^X", "Close", "Close", Click::ClosePane),
-            chip("^C", "Rename", "Rename", Click::RenamePane),
+            chip("N", "New", "New", Click::NewPane),
+            keys("HJKL", "Change Focus", "Move", &FOCUS_HJKL),
+            chip("X", "Close", "Close", Click::ClosePane),
+            chip("C", "Rename", "Rename", Click::RenamePane),
             chip(
-                "^F",
+                "F",
                 "Toggle Fullscreen",
                 "Fullscreen",
                 Click::ToggleFullscreen,
             ),
-            chip("^W", "Toggle Floating", "Floating", Click::ToggleFloating),
-            chip("^E", "Toggle Embed", "Embed", Click::ToggleEmbed),
-            chip("^R", "Split Right", "Right", Click::NewPaneRight),
-            chip("^D", "Split Down", "Down", Click::NewPaneDown),
-            chip("^S", "Stack", "Stack", Click::NewStacked),
-            chip("^ENTER", "Select Pane", "Select", Click::SelectPane),
+            chip("W", "Toggle Floating", "Floating", Click::ToggleFloating),
+            chip("E", "Toggle Embed", "Embed", Click::ToggleEmbed),
+            chip("R", "Split Right", "Right", Click::NewPaneRight),
+            chip("D", "Split Down", "Down", Click::NewPaneDown),
+            chip("S", "Stack", "Stack", Click::NewStacked),
+            chip("ENTER", "Select Pane", "Select", Click::SelectPane),
         ],
         "tab" => vec![
-            chip("^N", "New", "New", Click::NewTab),
-            keys("^HL", "Change Focus", "Move", &TAB_HL),
-            chip("^X", "Close", "Close", Click::CloseTab),
-            chip("^R", "Rename", "Rename", Click::RenameTab),
-            chip("^S", "Sync", "Sync", Click::SyncTab),
-            chip("^B", "Break Pane To New Tab", "Break Out", Click::BreakPane),
-            keys("^[]", "Break Pane Left/Right", "Break", &BREAK_BRACKETS),
-            chip("^TAB", "Toggle", "Toggle", Click::ToggleTab),
-            chip("^ENTER", "Select Pane", "Select", Click::SelectPane),
+            chip("N", "New", "New", Click::NewTab),
+            keys("HL", "Change Focus", "Move", &TAB_HL),
+            chip("X", "Close", "Close", Click::CloseTab),
+            chip("R", "Rename", "Rename", Click::RenameTab),
+            chip("S", "Sync", "Sync", Click::SyncTab),
+            chip("B", "Break Pane To New Tab", "Break Out", Click::BreakPane),
+            keys("[]", "Break Pane Left/Right", "Break", &BREAK_BRACKETS),
+            chip("TAB", "Toggle", "Toggle", Click::ToggleTab),
+            chip("ENTER", "Select Pane", "Select", Click::SelectPane),
         ],
         "resize" => vec![
             keys(
-                "^+-",
+                "+-",
                 "Increase/Decrease Size",
                 "Increase/Decrease",
                 &RESIZE_PM,
             ),
-            keys("^HJKL", "Increase To", "Increase", &RESIZE_INC),
-            keys("^HJKL", "Decrease From", "Decrease", &RESIZE_DEC),
-            chip("^ENTER", "Select Pane", "Select", Click::SelectPane),
+            keys("HJKL", "Increase To", "Increase", &RESIZE_INC),
+            keys("HJKL", "Decrease From", "Decrease", &RESIZE_DEC),
+            chip("ENTER", "Select Pane", "Select", Click::SelectPane),
         ],
         "move" => vec![
-            keys("^HJKL", "Switch Location", "Move", &MOVE_HJKL),
-            chip("^ENTER", "When Done", "Back", Click::SelectPane),
+            keys("HJKL", "Switch Location", "Move", &MOVE_HJKL),
+            chip("ENTER", "When Done", "Back", Click::SelectPane),
         ],
         "scroll" => vec![
-            chip("^S", "Enter Search Term", "Search", Click::EnterSearch),
-            keys("^HJKL", "Scroll", "Scroll", &SCROLL_HJKL),
+            chip("S", "Enter Search Term", "Search", Click::EnterSearch),
+            keys("HJKL", "Scroll", "Scroll", &SCROLL_HJKL),
             chip(
-                "^E",
+                "E",
                 "Edit Scrollback In Default Editor",
                 "Edit",
                 Click::EditScrollback,
             ),
-            chip("^ENTER", "Select Pane", "Select", Click::SelectPane),
+            chip("ENTER", "Select Pane", "Select", Click::SelectPane),
         ],
         "enter_search" => vec![
-            chip("^ENTER", "When Done", "Done", Click::ConfirmSearch),
-            chip("^ESC", "Cancel", "Cancel", Click::CancelSearch),
+            chip("ENTER", "When Done", "Done", Click::ConfirmSearch),
+            chip("ESC", "Cancel", "Cancel", Click::CancelSearch),
         ],
         "search" => vec![
-            chip("^N", "Search Down", "Down", Click::SearchDown),
-            chip("^P", "Search Up", "Up", Click::SearchUp),
-            chip("^C", "Case Sensitive", "Case", Click::SearchCase),
-            chip("^W", "Wrap", "Wrap", Click::SearchWrap),
-            chip("^O", "Whole Words", "Whole", Click::SearchWhole),
+            chip("N", "Search Down", "Down", Click::SearchDown),
+            chip("P", "Search Up", "Up", Click::SearchUp),
+            chip("C", "Case Sensitive", "Case", Click::SearchCase),
+            chip("W", "Wrap", "Wrap", Click::SearchWrap),
+            chip("O", "Whole Words", "Whole", Click::SearchWhole),
         ],
         "session" => vec![
-            chip("^D", "Detach", "Detach", Click::Detach),
-            chip("^W", "Session Manager", "Manager", Click::SessionManager),
-            chip("^S", "Share", "Share", Click::Share),
-            chip("^C", "Configure", "Config", Click::Configuration),
-            chip("^L", "Layout Manager", "Layouts", Click::LayoutManager),
-            chip("^P", "Plugin Manager", "Plugins", Click::PluginManager),
-            chip("^A", "About", "About", Click::About),
-            chip("^ENTER", "Select Pane", "Select", Click::SelectPane),
+            chip("D", "Detach", "Detach", Click::Detach),
+            chip("W", "Session Manager", "Manager", Click::SessionManager),
+            chip("S", "Share", "Share", Click::Share),
+            chip("C", "Configure", "Config", Click::Configuration),
+            chip("L", "Layout Manager", "Layouts", Click::LayoutManager),
+            chip("P", "Plugin Manager", "Plugins", Click::PluginManager),
+            chip("A", "About", "About", Click::About),
+            chip("ENTER", "Select Pane", "Select", Click::SelectPane),
         ],
         "tmux" => vec![
-            keys("^HJKL", "Move Focus", "Move", &FOCUS_HJKL),
-            chip("^\"", "Split Down", "Down", Click::NewPaneDown),
-            chip("^%", "Split Right", "Right", Click::NewPaneRight),
-            chip("^Z", "Fullscreen", "Fullscreen", Click::ToggleFullscreen),
-            chip("^C", "New Tab", "New", Click::NewTab),
-            chip("^,", "Rename Tab", "Rename", Click::RenameTab),
-            chip("^P", "Previous Tab", "Previous", Click::TabPrev),
-            chip("^N", "Next Tab", "Next", Click::TabNext),
-            chip("^ENTER", "Select Pane", "Select", Click::SelectPane),
+            keys("HJKL", "Move Focus", "Move", &FOCUS_HJKL),
+            chip("\"", "Split Down", "Down", Click::NewPaneDown),
+            chip("%", "Split Right", "Right", Click::NewPaneRight),
+            chip("Z", "Fullscreen", "Fullscreen", Click::ToggleFullscreen),
+            chip("C", "New Tab", "New", Click::NewTab),
+            chip(",", "Rename Tab", "Rename", Click::RenameTab),
+            chip("P", "Previous Tab", "Previous", Click::TabPrev),
+            chip("N", "Next Tab", "Next", Click::TabNext),
+            chip("ENTER", "Select Pane", "Select", Click::SelectPane),
         ],
-        "rename_pane" => vec![chip("^ESC", "When Done", "Done", Click::DoneRenamePane)],
-        "rename_tab" => vec![chip("^ESC", "When Done", "Done", Click::DoneRenameTab)],
+        "rename_pane" => vec![chip("ESC", "When Done", "Done", Click::DoneRenamePane)],
+        "rename_tab" => vec![chip("ESC", "When Done", "Done", Click::DoneRenameTab)],
         _ => vec![],
     }
 }
@@ -934,14 +934,15 @@ mod tests {
         }
 
         let session = shown("session", 220, false);
-        assert!(session.contains("^D Detach"), "{session}");
+        assert!(session.contains("D Detach"), "{session}");
+        assert!(session.contains("L Layout Manager"), "{session}");
         assert!(
-            !session.contains("^O Session"),
-            "session mode should not repeat the Session chip after Ctrl +: {session}"
+            !session.contains('^'),
+            "in-mode keys are unchorded: {session}"
         );
 
         let tab = shown("tab", 220, false);
-        assert!(tab.contains("^N New"), "{tab}");
+        assert!(tab.contains("N New"), "{tab}");
         assert!(
             !tab.contains("^T Tab"),
             "tab mode should not repeat the Tab chip after Ctrl +: {tab}"
@@ -954,6 +955,25 @@ mod tests {
         let locked = shown("locked", 220, false);
         assert!(locked.starts_with(" Ctrl + "), "{locked}");
         assert!(locked.contains("^G Lock"), "{locked}");
+    }
+
+    #[test]
+    fn session_layout_manager_chip_is_clickable() {
+        let hits = render_bar_with("session", 220, false, &Chrome::default(), None).1;
+        let hit = hits
+            .iter()
+            .find(|h| h.click == Click::LayoutManager)
+            .expect("layout manager chip");
+        let text = shown("session", 220, false);
+        let slice: String = text
+            .chars()
+            .skip(hit.start)
+            .take(hit.end - hit.start)
+            .collect();
+        assert!(
+            slice.contains('L') && slice.contains("Layout Manager"),
+            "hit {hit:?} covers {slice:?} in {text}"
+        );
     }
 
     #[test]
@@ -984,9 +1004,9 @@ mod tests {
         assert!(session_15.starts_with("Session Ctrl +"), "{session_15}");
         assert!(!session_15.contains("..."), "{session_15}");
 
-        let session_17 = shown("session", 17, false);
-        assert!(session_17.starts_with("Session Ctrl + ^D"), "{session_17}");
-        assert!(!session_17.contains("..."), "{session_17}");
+        let session_16 = shown("session", 16, false);
+        assert!(session_16.starts_with("Session Ctrl + D"), "{session_16}");
+        assert!(!session_16.contains("..."), "{session_16}");
 
         let normal_10 = shown("normal", 10, false);
         assert!(

@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use zellij_tile::prelude::actions::{Action, SearchDirection, SearchOption};
 use zellij_tile::prelude::*;
+use zellij_utils::input::layout::{PluginAlias, RunPluginOrAlias};
 
 use plugin::{
     chrome_from, render_status_hits, render_status_line, Chrome, Click, Hit, StatusState,
@@ -139,7 +140,20 @@ fn input_mode(name: &str) -> Option<InputMode> {
 }
 
 fn launch(url: &str) {
-    start_or_reload_plugin(url);
+    let plugin = RunPluginOrAlias::from_url(url, &None, None, None)
+        .unwrap_or_else(|_| RunPluginOrAlias::Alias(PluginAlias::new(url, &None, None)));
+    run_action(
+        Action::LaunchOrFocusPlugin {
+            plugin,
+            should_float: true,
+            move_to_focused_tab: true,
+            should_open_in_place: false,
+            close_replaced_pane: false,
+            skip_cache: false,
+            tab_id: None,
+        },
+        BTreeMap::new(),
+    );
     switch_to_input_mode(&InputMode::Normal);
 }
 
@@ -277,9 +291,9 @@ fn run_click(click: Click) {
         Click::ToggleTab => toggle_tab(),
         Click::SelectPane => switch_to_input_mode(&InputMode::Normal),
         Click::Detach => detach(),
-        Click::SessionManager => launch("zellij:session-manager"),
-        Click::Configuration => launch("zellij:configuration"),
-        Click::PluginManager => launch("zellij:plugin-manager"),
+        Click::SessionManager => launch("session-manager"),
+        Click::Configuration => launch("configuration"),
+        Click::PluginManager => launch("plugin-manager"),
         Click::About => launch("zellij:about"),
         Click::Share => launch("zellij:share"),
         Click::LayoutManager => launch("zellij:layout-manager"),
