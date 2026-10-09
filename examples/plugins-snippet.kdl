@@ -1,0 +1,15 @@
+// Paste this over the existing status-bar line inside plugins { } in
+// ~/.config/zellij/config.kdl.
+//
+// The key has to stay status-bar. A new name is never loaded by the default
+// layout. Do not put this line in load_plugins { }.
+//
+// Print the absolute path:
+//   printf 'file:%s/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm\n' "$HOME"
+//
+// ~ is not expanded inside the quoted location string.
+
+status-bar location="file:/ABSOLUTE/PATH/com.github.fulldecent.zellij-status-bar-ng.wasm"
+
+// Revert:
+// status-bar location="zellij:status-bar"

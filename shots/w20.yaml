@@ -1,0 +1,15 @@
+name: w20
+plugin: ../target/wasm32-wasip1/release/plugin.wasm
+geometry:
+  rows: 1
+  cols: 20
+steps:
+  - action: grant_permissions
+  - action: mode_update
+    mode: normal
+    session: demo
+  - action: tab_update
+    tabs:
+      - name: Tab
+        active: true
+        tiled: 1
