@@ -219,8 +219,7 @@ fn keys(
     }
 }
 
-/// Largest form first. After keys no longer fit, keep the prefix (and the first
-/// key when it fits). The last entry is the colored ellipsis with no prefix.
+/// Largest form first. The last entry is the colored ellipsis with no prefix.
 fn variants(prefix: Vec<Chunk>, items: &[Hint], abbreviate: bool) -> Vec<Vec<Chunk>> {
     let mut out: Vec<Vec<Chunk>> = Vec::new();
     let mut push = |chunks: Vec<Chunk>| {
@@ -272,16 +271,6 @@ fn variants(prefix: Vec<Chunk>, items: &[Hint], abbreviate: bool) -> Vec<Vec<Chu
         row.push(Chunk::rev(items[keep - 1].token));
         row.push(Chunk::plain(" ..."));
         push(row);
-    }
-
-    // Prefix plus the first key, then the prefix alone, before a prefix-free "...".
-    if n >= 1 {
-        let mut row = prefix.clone();
-        row.extend(token_chunks(&items[0]));
-        push(row);
-    }
-    if !prefix.is_empty() {
-        push(prefix);
     }
 
     push(vec![Chunk::orange("...")]);
@@ -701,11 +690,23 @@ pub fn render_bar_with(
 
     if let Some(heading) = mode_heading(mode) {
         let prefix = vec![Chunk::orange(heading), Chunk::bold(" Ctrl + ")];
-        let mut options = variants(prefix, &mode_actions(mode), true);
-        let heading_only = vec![Chunk::orange(heading)];
+        let actions = mode_actions(mode);
+        let mut options = variants(prefix.clone(), &actions, true);
+        let mut compact = Vec::new();
+        if let Some(first) = actions.first() {
+            let mut row = prefix.clone();
+            row.extend(token_chunks(first));
+            compact.push(row);
+        }
+        compact.push(prefix);
+        compact.push(vec![Chunk::orange(heading)]);
         match options.iter().position(|row| plain_text(row) == "...") {
-            Some(i) => options.insert(i, heading_only),
-            None => options.push(heading_only),
+            Some(i) => {
+                for row in compact.into_iter().rev() {
+                    options.insert(i, row);
+                }
+            }
+            None => options.extend(compact),
         }
         let chosen = first_fit(&options, cols);
         return finish(chosen, cols, chrome, hover);
@@ -986,5 +987,16 @@ mod tests {
         let session_17 = shown("session", 17, false);
         assert!(session_17.starts_with("Session Ctrl + ^D"), "{session_17}");
         assert!(!session_17.contains("..."), "{session_17}");
+
+        let normal_10 = shown("normal", 10, false);
+        assert!(
+            normal_10.starts_with("..."),
+            "normal at 10 should stay on the ellipsis: {normal_10}"
+        );
+        let locked_10 = shown("locked", 10, false);
+        assert!(
+            locked_10.starts_with("..."),
+            "locked at 10 should stay on the ellipsis: {locked_10}"
+        );
     }
 }
