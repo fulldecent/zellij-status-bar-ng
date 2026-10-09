@@ -99,7 +99,23 @@ In Normal mode the bottom line shows chips such as `^G Lock` and `Alt + ⌥N New
 
 When a mode such as Tab or Session is active, that name sits at the far left, before `Ctrl +`, so the shortcuts read as that mode’s commands. Those in-mode keys are unmodified (`L Layout Manager`), with no `^` caret.
 
+Session mode, 160 columns:
+
+![Session mode at 160 columns](shots/session.svg)
+
+Tab mode, 160 columns:
+
+![Tab mode at 160 columns](shots/tab.svg)
+
 Click a chip to run that action. Hover inverts the hit target’s colors. A combo such as `⌥←↓↑→` highlights and clicks one arrow. A chip such as `^N Resize` is nine cells, all one target.
+
+Mouse over `^N Resize`, 80 columns:
+
+![Mouse over Resize at 80 columns](shots/hover.svg)
+
+Mouse over `↓` in `⌥←↓↑→`, 160 columns, two panes:
+
+![Mouse over the down arrow at 160 columns](shots/hover-focus.svg)
 
 ### GNU nano display of shortcuts
 
@@ -125,7 +141,7 @@ A wide terminal keeps labels. A narrow one shortens names, then drops names from
 
 ![This status bar at 100 columns](shots/w100.svg)
 
-Widths 1 through 100 are covered by `tests/widths.rs`. The pictures are SVG from [Zellij Plugin Snapshot](https://github.com/fulldecent/zellij-plugin-snapshot).
+Widths 1 through 100 are covered by `tests/widths.rs`. The pictures are SVG from [Zellij Plugin Snapshot](https://github.com/fulldecent/zellij-plugin-snapshot). Session mode, Tab mode, and mouse-over pictures are in the [gallery](README-RESPONSIVE-GALLERY.md).
 
 ### Revert to the stock status bar
 
@@ -211,7 +227,7 @@ zellij --layout layout/plugin-dev.status-bar.kdl
 "$(rustup which cargo)" build --release --locked
 ```
 
-`cargo test` runs the Rust tests in `src/` and `tests/widths.rs`. [tests/snapshot.sh](tests/snapshot.sh) builds the release wasm, runs [shots/screenshot.yaml](shots/screenshot.yaml), and exits non-zero unless those bytes match [shots/screenshot.ansi.txt](shots/screenshot.ansi.txt).
+`cargo test` runs the Rust tests in `src/` and `tests/widths.rs`. [tests/snapshot.sh](tests/snapshot.sh) builds the release wasm, runs every script in [shots/](shots/), and exits non-zero unless those bytes match the committed `shots/*.ansi.txt` files. SVG is traced. `diff` does not compare it. The 80-column picture is committed as [screenshot.svg](screenshot.svg) at the repository root. The other pictures are committed beside their YAML scripts.
 
 ```sh
 "$(rustup which cargo)" install zellij-plugin-snapshot --version 0.2.2 --locked
@@ -235,7 +251,7 @@ The project administrator completes these maintenance tasks each month.
 
 1. Identify external Actions in [.github/workflows](./.github/workflows) and update them when it is safe.
 1. Review the Rust toolchain in `rust-toolchain.toml`.
-1. Review [zellij-plugin-snapshot](https://github.com/fulldecent/zellij-plugin-snapshot) releases. Update every `cargo install zellij-plugin-snapshot --version` line. Regenerate [shots/screenshot.ansi.txt](shots/screenshot.ansi.txt) and [screenshot.svg](screenshot.svg) when the host output changes.
+1. Review [zellij-plugin-snapshot](https://github.com/fulldecent/zellij-plugin-snapshot) releases. Update every `cargo install zellij-plugin-snapshot --version` line. Regenerate each `shots/*.ansi.txt` and its SVG when the host output changes. Commit [screenshot.svg](screenshot.svg) at the repository root. Commit the other SVG files beside their YAML scripts.
 
 ## Project scope
 

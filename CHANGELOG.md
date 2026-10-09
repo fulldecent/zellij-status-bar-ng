@@ -17,6 +17,7 @@
 
 ## Unreleased
 
+- Gallery pictures for Session mode, Tab mode, a hovered Resize chip, and a hovered focus arrow.
 - In-mode shortcuts drop the `^` caret. Session shows `L Layout Manager`, because the extra key is unmodified once the mode is active.
 - Clicking Session chips such as Layout Manager launches the floating plugin instead of only leaving the mode.
 - Active modes (Tab, Session, Pane, and the rest) put that name at the far left, before `Ctrl +`, so the following shortcuts read as that mode’s commands.
