@@ -23,16 +23,24 @@ impl Default for State {
 
 impl ZellijPlugin for State {
     fn load(&mut self, _configuration: BTreeMap<String, String>) {
-        // Same as the built-in status bar: this is chrome, not a pane. If it
-        // stays selectable, Ctrl-D leaves the tab open and this bar slides up
-        // into the space the shell vacated.
-        set_selectable(false);
         request_permission(&[PermissionType::ReadApplicationState]);
-        subscribe(&[EventType::ModeUpdate, EventType::TabUpdate]);
+        subscribe(&[
+            EventType::ModeUpdate,
+            EventType::TabUpdate,
+            EventType::PermissionRequestResult,
+        ]);
     }
 
     fn update(&mut self, event: Event) -> bool {
         match event {
+            Event::PermissionRequestResult(status) => {
+                if status == PermissionStatus::Granted {
+                    // Chrome, not a pane. Stay selectable until this event so
+                    // the y/n permission prompt can receive a key.
+                    set_selectable(false);
+                }
+                true
+            }
             Event::ModeUpdate(info) => {
                 self.mode = info.mode;
                 self.chrome = chrome_from(&info.style);
