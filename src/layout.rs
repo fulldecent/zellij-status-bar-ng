@@ -219,7 +219,8 @@ fn keys(
     }
 }
 
-/// Largest form first. The last entry is the colored ellipsis with no prefix.
+/// Largest form first. After keys no longer fit, keep the prefix (and the first
+/// key when it fits). The last entry is the colored ellipsis with no prefix.
 fn variants(prefix: Vec<Chunk>, items: &[Hint], abbreviate: bool) -> Vec<Vec<Chunk>> {
     let mut out: Vec<Vec<Chunk>> = Vec::new();
     let mut push = |chunks: Vec<Chunk>| {
@@ -271,6 +272,16 @@ fn variants(prefix: Vec<Chunk>, items: &[Hint], abbreviate: bool) -> Vec<Vec<Chu
         row.push(Chunk::rev(items[keep - 1].token));
         row.push(Chunk::plain(" ..."));
         push(row);
+    }
+
+    // Prefix plus the first key, then the prefix alone, before a prefix-free "...".
+    if n >= 1 {
+        let mut row = prefix.clone();
+        row.extend(token_chunks(&items[0]));
+        push(row);
+    }
+    if !prefix.is_empty() {
+        push(prefix);
     }
 
     push(vec![Chunk::orange("...")]);
@@ -690,7 +701,13 @@ pub fn render_bar_with(
 
     if let Some(heading) = mode_heading(mode) {
         let prefix = vec![Chunk::orange(heading), Chunk::bold(" Ctrl + ")];
-        let chosen = first_fit(&variants(prefix, &mode_actions(mode), true), cols);
+        let mut options = variants(prefix, &mode_actions(mode), true);
+        let heading_only = vec![Chunk::orange(heading)];
+        match options.iter().position(|row| plain_text(row) == "...") {
+            Some(i) => options.insert(i, heading_only),
+            None => options.push(heading_only),
+        }
+        let chosen = first_fit(&options, cols);
         return finish(chosen, cols, chrome, hover);
     }
 
@@ -936,5 +953,38 @@ mod tests {
         let locked = shown("locked", 220, false);
         assert!(locked.starts_with(" Ctrl + "), "{locked}");
         assert!(locked.contains("^G Lock"), "{locked}");
+    }
+
+    #[test]
+    fn narrow_active_mode_keeps_the_heading() {
+        for (mode, name) in [
+            ("pane", "Pane"),
+            ("tab", "Tab"),
+            ("resize", "Resize"),
+            ("move", "Move"),
+            ("scroll", "Search"),
+            ("session", "Session"),
+            ("tmux", "Tmux"),
+        ] {
+            let prefix_width = format!("{name} Ctrl + ").chars().count();
+            let with_ctrl = shown(mode, prefix_width, false);
+            assert!(
+                with_ctrl.starts_with(&format!("{name} Ctrl +")),
+                "{mode} at {prefix_width}: {with_ctrl}"
+            );
+
+            let name_width = name.chars().count();
+            let headed = shown(mode, name_width, false);
+            assert!(headed.starts_with(name), "{mode} at {name_width}: {headed}");
+        }
+
+        // Session prefix is 15 cells; the old shortest headed form was 21.
+        let session_15 = shown("session", 15, false);
+        assert!(session_15.starts_with("Session Ctrl +"), "{session_15}");
+        assert!(!session_15.contains("..."), "{session_15}");
+
+        let session_17 = shown("session", 17, false);
+        assert!(session_17.starts_with("Session Ctrl + ^D"), "{session_17}");
+        assert!(!session_17.contains("..."), "{session_17}");
     }
 }
