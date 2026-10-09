@@ -11,10 +11,85 @@ enum Style {
     Reverse,
 }
 
+/// What a click on a painted range should do.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Click {
+    Mode(&'static str),
+    Quit,
+    NewPane,
+    NewPaneDown,
+    NewPaneRight,
+    NewStacked,
+    FocusLeft,
+    FocusDown,
+    FocusUp,
+    FocusRight,
+    ResizeIncrease,
+    ResizeDecrease,
+    ResizeIncreaseLeft,
+    ResizeIncreaseDown,
+    ResizeIncreaseUp,
+    ResizeIncreaseRight,
+    ResizeDecreaseLeft,
+    ResizeDecreaseDown,
+    ResizeDecreaseUp,
+    ResizeDecreaseRight,
+    MovePaneLeft,
+    MovePaneDown,
+    MovePaneUp,
+    MovePaneRight,
+    ToggleFloating,
+    ToggleEmbed,
+    ToggleFullscreen,
+    ClosePane,
+    CloseTab,
+    NewTab,
+    RenamePane,
+    RenameTab,
+    SyncTab,
+    BreakPane,
+    BreakPaneLeft,
+    BreakPaneRight,
+    ToggleTab,
+    SelectPane,
+    Detach,
+    SessionManager,
+    Configuration,
+    PluginManager,
+    About,
+    Share,
+    LayoutManager,
+    EditScrollback,
+    ScrollUp,
+    ScrollDown,
+    EnterSearch,
+    CancelSearch,
+    ConfirmSearch,
+    SearchDown,
+    SearchUp,
+    SearchCase,
+    SearchWrap,
+    SearchWhole,
+    TabPrev,
+    TabNext,
+    PageScrollUp,
+    PageScrollDown,
+    DoneRenamePane,
+    DoneRenameTab,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Hit {
+    pub start: usize,
+    pub end: usize,
+    pub click: Click,
+}
+
 #[derive(Clone, Debug)]
 struct Chunk {
     style: Style,
     text: String,
+    hit: Option<Click>,
 }
 
 impl Chunk {
@@ -22,24 +97,42 @@ impl Chunk {
         Self {
             style: Style::Plain,
             text: text.into(),
+            hit: None,
         }
     }
     fn bold(text: impl Into<String>) -> Self {
         Self {
             style: Style::Bold,
             text: text.into(),
+            hit: None,
         }
     }
     fn orange(text: impl Into<String>) -> Self {
         Self {
             style: Style::BoldOrange,
             text: text.into(),
+            hit: None,
         }
     }
     fn rev(text: impl Into<String>) -> Self {
         Self {
             style: Style::Reverse,
             text: text.into(),
+            hit: None,
+        }
+    }
+    fn rev_hit(text: impl Into<String>, hit: Click) -> Self {
+        Self {
+            style: Style::Reverse,
+            text: text.into(),
+            hit: Some(hit),
+        }
+    }
+    fn plain_hit(text: impl Into<String>, hit: Click) -> Self {
+        Self {
+            style: Style::Plain,
+            text: text.into(),
+            hit: Some(hit),
         }
     }
 }
@@ -48,6 +141,12 @@ struct Hint {
     token: &'static str,
     full: &'static str,
     abbr: &'static str,
+    kind: Kind,
+}
+
+enum Kind {
+    Chip(Click),
+    Keys(&'static [Click]),
 }
 
 fn width(chunks: &[Chunk]) -> usize {
@@ -58,16 +157,66 @@ fn plain_text(chunks: &[Chunk]) -> String {
     chunks.iter().map(|c| c.text.as_str()).collect()
 }
 
+fn token_chunks(h: &Hint) -> Vec<Chunk> {
+    match h.kind {
+        Kind::Chip(click) => vec![Chunk::rev_hit(h.token, click)],
+        Kind::Keys(keys) => {
+            let chars: Vec<char> = h.token.chars().collect();
+            let prefix = chars.len().saturating_sub(keys.len());
+            let mut out = Vec::new();
+            if prefix > 0 {
+                let head: String = chars[..prefix].iter().collect();
+                out.push(Chunk::rev(head));
+            }
+            for (i, ch) in chars[prefix..].iter().enumerate() {
+                out.push(Chunk::rev_hit(ch.to_string(), keys[i]));
+            }
+            out
+        }
+    }
+}
+
 fn named(h: &Hint, label: &str) -> Vec<Chunk> {
-    vec![Chunk::rev(h.token), Chunk::plain(format!(" {label}  "))]
+    let mut out = token_chunks(h);
+    match h.kind {
+        Kind::Chip(click) => {
+            out.push(Chunk::plain_hit(format!(" {label}"), click));
+            out.push(Chunk::plain("  "));
+        }
+        Kind::Keys(_) => {
+            out.push(Chunk::plain(format!(" {label}  ")));
+        }
+    }
+    out
 }
 
 fn key_only(h: &Hint) -> Vec<Chunk> {
-    vec![Chunk::rev(h.token), Chunk::plain("  ")]
+    let mut out = token_chunks(h);
+    out.push(Chunk::plain("  "));
+    out
 }
 
-fn hint(token: &'static str, full: &'static str, abbr: &'static str) -> Hint {
-    Hint { token, full, abbr }
+fn chip(token: &'static str, full: &'static str, abbr: &'static str, click: Click) -> Hint {
+    Hint {
+        token,
+        full,
+        abbr,
+        kind: Kind::Chip(click),
+    }
+}
+
+fn keys(
+    token: &'static str,
+    full: &'static str,
+    abbr: &'static str,
+    clicks: &'static [Click],
+) -> Hint {
+    Hint {
+        token,
+        full,
+        abbr,
+        kind: Kind::Keys(clicks),
+    }
 }
 
 /// Largest form first. The last entry is the colored ellipsis with no prefix.
@@ -186,17 +335,33 @@ impl Ink {
     }
 }
 
-fn paint(chunks: &[Chunk], chrome: &Chrome) -> String {
+fn hovered_click(chunks: &[Chunk], col: usize) -> Option<Click> {
+    let mut x = 0;
+    for chunk in chunks {
+        let w = chunk.text.chars().count();
+        if col >= x && col < x + w {
+            return chunk.hit;
+        }
+        x += w;
+    }
+    None
+}
+
+fn paint(chunks: &[Chunk], chrome: &Chrome, hover: Option<usize>) -> String {
+    let active = hover.and_then(|col| hovered_click(chunks, col));
     let mut out = String::new();
     for chunk in chunks {
         out.push_str("\u{1b}[0m");
-        let params = match chunk.style {
-            // Labels are the ribbon gray on the black bar. Only Ctrl + is bold.
-            Style::Plain => format!("22;{};{}", chrome.light.fg(), chrome.bar.bg()),
-            Style::Bold => format!("1;{};{}", chrome.ctrl.fg(), chrome.bar.bg()),
-            Style::BoldOrange => format!("22;{};{}", chrome.alt.fg(), chrome.bar.bg()),
-            // `^G` / `⌥N`: the dark `<` `>` color on the ribbon gray.
-            Style::Reverse => format!("22;{};{}", chrome.dark.fg(), chrome.light.bg()),
+        let invert = chunk.hit.is_some() && chunk.hit == active;
+        let params = match (chunk.style, invert) {
+            (Style::Plain, false) => format!("22;{};{}", chrome.light.fg(), chrome.bar.bg()),
+            (Style::Plain, true) => format!("22;{};{}", chrome.bar.fg(), chrome.light.bg()),
+            (Style::Bold, false) => format!("1;{};{}", chrome.ctrl.fg(), chrome.bar.bg()),
+            (Style::Bold, true) => format!("1;{};{}", chrome.bar.fg(), chrome.ctrl.bg()),
+            (Style::BoldOrange, false) => format!("22;{};{}", chrome.alt.fg(), chrome.bar.bg()),
+            (Style::BoldOrange, true) => format!("22;{};{}", chrome.bar.fg(), chrome.alt.bg()),
+            (Style::Reverse, false) => format!("22;{};{}", chrome.dark.fg(), chrome.light.bg()),
+            (Style::Reverse, true) => format!("22;{};{}", chrome.light.fg(), chrome.dark.bg()),
         };
         out.push_str(&format!("\u{1b}[{params}m"));
         out.push_str(&chunk.text);
@@ -205,12 +370,42 @@ fn paint(chunks: &[Chunk], chrome: &Chrome) -> String {
     out
 }
 
-fn finish(mut chunks: Vec<Chunk>, cols: usize, chrome: &Chrome) -> String {
+fn hits_of(chunks: &[Chunk]) -> Vec<Hit> {
+    let mut hits: Vec<Hit> = Vec::new();
+    let mut x = 0;
+    for chunk in chunks {
+        let w = chunk.text.chars().count();
+        if let Some(click) = chunk.hit {
+            if let Some(last) = hits.last_mut() {
+                if last.click == click && last.end == x {
+                    last.end = x + w;
+                    x += w;
+                    continue;
+                }
+            }
+            hits.push(Hit {
+                start: x,
+                end: x + w,
+                click,
+            });
+        }
+        x += w;
+    }
+    hits
+}
+
+fn finish(
+    mut chunks: Vec<Chunk>,
+    cols: usize,
+    chrome: &Chrome,
+    hover: Option<usize>,
+) -> (String, Vec<Hit>) {
     let gap = cols.saturating_sub(width(&chunks));
     if gap > 0 {
         chunks.push(Chunk::plain(" ".repeat(gap)));
     }
-    paint(&chunks, chrome)
+    let hits = hits_of(&chunks);
+    (paint(&chunks, chrome, hover), hits)
 }
 
 #[cfg(test)]
@@ -242,26 +437,67 @@ fn alt_prefix() -> Vec<Chunk> {
     vec![Chunk::orange("Alt + ")]
 }
 
+const FOCUS_HJKL: [Click; 4] = [
+    Click::FocusLeft,
+    Click::FocusDown,
+    Click::FocusUp,
+    Click::FocusRight,
+];
+const FOCUS_ARROWS: [Click; 4] = [
+    Click::FocusLeft,
+    Click::FocusDown,
+    Click::FocusUp,
+    Click::FocusRight,
+];
+const RESIZE_PM: [Click; 2] = [Click::ResizeIncrease, Click::ResizeDecrease];
+const RESIZE_INC: [Click; 4] = [
+    Click::ResizeIncreaseLeft,
+    Click::ResizeIncreaseDown,
+    Click::ResizeIncreaseUp,
+    Click::ResizeIncreaseRight,
+];
+const RESIZE_DEC: [Click; 4] = [
+    Click::ResizeDecreaseLeft,
+    Click::ResizeDecreaseDown,
+    Click::ResizeDecreaseUp,
+    Click::ResizeDecreaseRight,
+];
+const MOVE_HJKL: [Click; 4] = [
+    Click::MovePaneLeft,
+    Click::MovePaneDown,
+    Click::MovePaneUp,
+    Click::MovePaneRight,
+];
+const SCROLL_HJKL: [Click; 4] = [
+    Click::PageScrollUp,
+    Click::ScrollDown,
+    Click::ScrollUp,
+    Click::PageScrollDown,
+];
+const TAB_HL: [Click; 2] = [Click::TabPrev, Click::TabNext];
+const BREAK_BRACKETS: [Click; 2] = [Click::BreakPaneLeft, Click::BreakPaneRight];
+const ALT_RESIZE: [Click; 2] = [Click::ResizeIncrease, Click::ResizeDecrease];
+
 fn normal_modes() -> Vec<Hint> {
     vec![
-        hint("^G", "Lock", "Lock"),
-        hint("^P", "Pane", "Pane"),
-        hint("^T", "Tab", "Tab"),
-        hint("^N", "Resize", "Resize"),
-        hint("^H", "Move", "Move"),
-        hint("^S", "Search", "Search"),
-        hint("^O", "Session", "Session"),
-        hint("^Q", "Quit", "Quit"),
+        chip("^G", "Lock", "Lock", Click::Mode("locked")),
+        chip("^P", "Pane", "Pane", Click::Mode("pane")),
+        chip("^T", "Tab", "Tab", Click::Mode("tab")),
+        chip("^N", "Resize", "Resize", Click::Mode("resize")),
+        chip("^H", "Move", "Move", Click::Mode("move")),
+        chip("^S", "Search", "Search", Click::Mode("scroll")),
+        chip("^O", "Session", "Session", Click::Mode("session")),
+        chip("^Q", "Quit", "Quit", Click::Quit),
     ]
 }
 
 fn alt_items(multi_pane: bool) -> Vec<Hint> {
-    let mut items = vec![hint("⌥N", "New Pane", "New")];
+    let mut items = vec![chip("⌥N", "New Pane", "New", Click::NewPane)];
     if multi_pane {
-        items.push(hint("⌥←↓↑→", "Change Focus", "Focus"));
-        items.push(hint("⌥+-", "Resize", "Resize"));
+        items.push(keys("⌥←↓↑→", "Change Focus", "Focus", &FOCUS_ARROWS));
+        items.push(keys("⌥+-", "Resize", "Resize", &ALT_RESIZE));
     }
-    items.push(hint("⌥F", "Floating", "Floating"));
+    items.push(chip("⌥F", "Floating", "Floating", Click::ToggleFloating));
     items
 }
 
@@ -292,14 +528,14 @@ fn help_title(mode: &str) -> Option<&'static str> {
 fn indicator(mode: &str) -> Option<Vec<Hint>> {
     let items = match mode {
         "normal" => normal_modes(),
-        "locked" => vec![hint("^G", "Lock", "Lock")],
-        "pane" => vec![hint("^P", "Pane", "Pane")],
-        "tab" => vec![hint("^T", "Tab", "Tab")],
-        "resize" => vec![hint("^N", "Resize", "Resize")],
-        "move" => vec![hint("^H", "Move", "Move")],
-        "scroll" => vec![hint("^S", "Search", "Search")],
-        "session" => vec![hint("^O", "Session", "Session")],
-        "tmux" => vec![hint("^B", "Tmux", "Tmux")],
+        "locked" => vec![chip("^G", "Lock", "Lock", Click::Mode("normal"))],
+        "pane" => vec![chip("^P", "Pane", "Pane", Click::Mode("normal"))],
+        "tab" => vec![chip("^T", "Tab", "Tab", Click::Mode("normal"))],
+        "resize" => vec![chip("^N", "Resize", "Resize", Click::Mode("normal"))],
+        "move" => vec![chip("^H", "Move", "Move", Click::Mode("normal"))],
+        "scroll" => vec![chip("^S", "Search", "Search", Click::Mode("normal"))],
+        "session" => vec![chip("^O", "Session", "Session", Click::Mode("normal"))],
+        "tmux" => vec![chip("^B", "Tmux", "Tmux", Click::Mode("normal"))],
         _ => return None,
     };
     Some(items)
@@ -308,90 +544,112 @@ fn indicator(mode: &str) -> Option<Vec<Hint>> {
 fn mode_actions(mode: &str) -> Vec<Hint> {
     match mode {
         "pane" => vec![
-            hint("^N", "New", "New"),
-            hint("^HJKL", "Change Focus", "Move"),
-            hint("^X", "Close", "Close"),
-            hint("^C", "Rename", "Rename"),
-            hint("^F", "Toggle Fullscreen", "Fullscreen"),
-            hint("^W", "Toggle Floating", "Floating"),
-            hint("^E", "Toggle Embed", "Embed"),
-            hint("^R", "Split Right", "Right"),
-            hint("^D", "Split Down", "Down"),
-            hint("^S", "Stack", "Stack"),
-            hint("^ENTER", "Select Pane", "Select"),
+            chip("^N", "New", "New", Click::NewPane),
+            keys("^HJKL", "Change Focus", "Move", &FOCUS_HJKL),
+            chip("^X", "Close", "Close", Click::ClosePane),
+            chip("^C", "Rename", "Rename", Click::RenamePane),
+            chip(
+                "^F",
+                "Toggle Fullscreen",
+                "Fullscreen",
+                Click::ToggleFullscreen,
+            ),
+            chip("^W", "Toggle Floating", "Floating", Click::ToggleFloating),
+            chip("^E", "Toggle Embed", "Embed", Click::ToggleEmbed),
+            chip("^R", "Split Right", "Right", Click::NewPaneRight),
+            chip("^D", "Split Down", "Down", Click::NewPaneDown),
+            chip("^S", "Stack", "Stack", Click::NewStacked),
+            chip("^ENTER", "Select Pane", "Select", Click::SelectPane),
         ],
         "tab" => vec![
-            hint("^N", "New", "New"),
-            hint("^HL", "Change Focus", "Move"),
-            hint("^X", "Close", "Close"),
-            hint("^R", "Rename", "Rename"),
-            hint("^S", "Sync", "Sync"),
-            hint("^B", "Break Pane To New Tab", "Break Out"),
-            hint("^[]", "Break Pane Left/Right", "Break"),
-            hint("^TAB", "Toggle", "Toggle"),
-            hint("^ENTER", "Select Pane", "Select"),
+            chip("^N", "New", "New", Click::NewTab),
+            keys("^HL", "Change Focus", "Move", &TAB_HL),
+            chip("^X", "Close", "Close", Click::CloseTab),
+            chip("^R", "Rename", "Rename", Click::RenameTab),
+            chip("^S", "Sync", "Sync", Click::SyncTab),
+            chip("^B", "Break Pane To New Tab", "Break Out", Click::BreakPane),
+            keys("^[]", "Break Pane Left/Right", "Break", &BREAK_BRACKETS),
+            chip("^TAB", "Toggle", "Toggle", Click::ToggleTab),
+            chip("^ENTER", "Select Pane", "Select", Click::SelectPane),
         ],
         "resize" => vec![
-            hint("^+-", "Increase/Decrease Size", "Increase/Decrease"),
-            hint("^HJKL", "Increase To", "Increase"),
-            hint("^HJKL", "Decrease From", "Decrease"),
-            hint("^ENTER", "Select Pane", "Select"),
+            keys(
+                "^+-",
+                "Increase/Decrease Size",
+                "Increase/Decrease",
+                &RESIZE_PM,
+            ),
+            keys("^HJKL", "Increase To", "Increase", &RESIZE_INC),
+            keys("^HJKL", "Decrease From", "Decrease", &RESIZE_DEC),
+            chip("^ENTER", "Select Pane", "Select", Click::SelectPane),
         ],
         "move" => vec![
-            hint("^HJKL", "Switch Location", "Move"),
-            hint("^ENTER", "When Done", "Back"),
+            keys("^HJKL", "Switch Location", "Move", &MOVE_HJKL),
+            chip("^ENTER", "When Done", "Back", Click::SelectPane),
         ],
         "scroll" => vec![
-            hint("^S", "Enter Search Term", "Search"),
-            hint("^HJKL", "Scroll", "Scroll"),
-            hint("^E", "Edit Scrollback In Default Editor", "Edit"),
-            hint("^ENTER", "Select Pane", "Select"),
+            chip("^S", "Enter Search Term", "Search", Click::EnterSearch),
+            keys("^HJKL", "Scroll", "Scroll", &SCROLL_HJKL),
+            chip(
+                "^E",
+                "Edit Scrollback In Default Editor",
+                "Edit",
+                Click::EditScrollback,
+            ),
+            chip("^ENTER", "Select Pane", "Select", Click::SelectPane),
         ],
         "enter_search" => vec![
-            hint("^ENTER", "When Done", "Done"),
-            hint("^ESC", "Cancel", "Cancel"),
+            chip("^ENTER", "When Done", "Done", Click::ConfirmSearch),
+            chip("^ESC", "Cancel", "Cancel", Click::CancelSearch),
         ],
         "search" => vec![
-            hint("^N", "Search Down", "Down"),
-            hint("^P", "Search Up", "Up"),
-            hint("^C", "Case Sensitive", "Case"),
-            hint("^W", "Wrap", "Wrap"),
-            hint("^O", "Whole Words", "Whole"),
+            chip("^N", "Search Down", "Down", Click::SearchDown),
+            chip("^P", "Search Up", "Up", Click::SearchUp),
+            chip("^C", "Case Sensitive", "Case", Click::SearchCase),
+            chip("^W", "Wrap", "Wrap", Click::SearchWrap),
+            chip("^O", "Whole Words", "Whole", Click::SearchWhole),
         ],
         "session" => vec![
-            hint("^D", "Detach", "Detach"),
-            hint("^W", "Session Manager", "Manager"),
-            hint("^S", "Share", "Share"),
-            hint("^C", "Configure", "Config"),
-            hint("^L", "Layout Manager", "Layouts"),
-            hint("^P", "Plugin Manager", "Plugins"),
-            hint("^A", "About", "About"),
-            hint("^ENTER", "Select Pane", "Select"),
+            chip("^D", "Detach", "Detach", Click::Detach),
+            chip("^W", "Session Manager", "Manager", Click::SessionManager),
+            chip("^S", "Share", "Share", Click::Share),
+            chip("^C", "Configure", "Config", Click::Configuration),
+            chip("^L", "Layout Manager", "Layouts", Click::LayoutManager),
+            chip("^P", "Plugin Manager", "Plugins", Click::PluginManager),
+            chip("^A", "About", "About", Click::About),
+            chip("^ENTER", "Select Pane", "Select", Click::SelectPane),
         ],
         "tmux" => vec![
-            hint("^HJKL", "Move Focus", "Move"),
-            hint("^\"", "Split Down", "Down"),
-            hint("^%", "Split Right", "Right"),
-            hint("^Z", "Fullscreen", "Fullscreen"),
-            hint("^C", "New Tab", "New"),
-            hint("^,", "Rename Tab", "Rename"),
-            hint("^P", "Previous Tab", "Previous"),
-            hint("^N", "Next Tab", "Next"),
-            hint("^ENTER", "Select Pane", "Select"),
+            keys("^HJKL", "Move Focus", "Move", &FOCUS_HJKL),
+            chip("^\"", "Split Down", "Down", Click::NewPaneDown),
+            chip("^%", "Split Right", "Right", Click::NewPaneRight),
+            chip("^Z", "Fullscreen", "Fullscreen", Click::ToggleFullscreen),
+            chip("^C", "New Tab", "New", Click::NewTab),
+            chip("^,", "Rename Tab", "Rename", Click::RenameTab),
+            chip("^P", "Previous Tab", "Previous", Click::TabPrev),
+            chip("^N", "Next Tab", "Next", Click::TabNext),
+            chip("^ENTER", "Select Pane", "Select", Click::SelectPane),
         ],
-        "rename_pane" | "rename_tab" => vec![hint("^ESC", "When Done", "Done")],
+        "rename_pane" => vec![chip("^ESC", "When Done", "Done", Click::DoneRenamePane)],
+        "rename_tab" => vec![chip("^ESC", "When Done", "Done", Click::DoneRenameTab)],
         _ => vec![],
     }
 }
 
 #[cfg(test)]
 fn render_bar(mode: &str, cols: usize, multi_pane: bool) -> String {
-    render_bar_with(mode, cols, multi_pane, &Chrome::default())
+    render_bar_with(mode, cols, multi_pane, &Chrome::default(), None).0
 }
 
-pub fn render_bar_with(mode: &str, cols: usize, multi_pane: bool, chrome: &Chrome) -> String {
+pub fn render_bar_with(
+    mode: &str,
+    cols: usize,
+    multi_pane: bool,
+    chrome: &Chrome,
+    hover: Option<usize>,
+) -> (String, Vec<Hit>) {
     if cols == 0 {
-        return String::new();
+        return (String::new(), Vec::new());
     }
 
     let ctrl_options = indicator(mode)
@@ -411,7 +669,7 @@ pub fn render_bar_with(mode: &str, cols: usize, multi_pane: bool, chrome: &Chrom
                 continue;
             }
             if plain_text(ctrl) == "..." {
-                return finish(ctrl.clone(), cols, chrome);
+                return finish(ctrl.clone(), cols, chrome, hover);
             }
             let remain = cols - width(ctrl);
             let alt = alt_options
@@ -419,14 +677,14 @@ pub fn render_bar_with(mode: &str, cols: usize, multi_pane: bool, chrome: &Chrom
                 .find(|option| width(option) <= remain)
                 .cloned()
                 .unwrap_or_default();
-            return finish(place(ctrl.clone(), alt, cols), cols, chrome);
+            return finish(place(ctrl.clone(), alt, cols), cols, chrome, hover);
         }
-        return finish(Vec::new(), cols, chrome);
+        return finish(Vec::new(), cols, chrome, hover);
     }
 
     let ctrl = first_fit(&ctrl_options, cols);
     if plain_text(&ctrl) == "..." {
-        return finish(ctrl, cols, chrome);
+        return finish(ctrl, cols, chrome, hover);
     }
     let mut remain = cols.saturating_sub(width(&ctrl));
     let sep = if let Some(title) = help_title(mode) {
@@ -444,7 +702,7 @@ pub fn render_bar_with(mode: &str, cols: usize, multi_pane: bool, chrome: &Chrom
         None
     };
     let Some(sep) = sep else {
-        return finish(ctrl, cols, chrome);
+        return finish(ctrl, cols, chrome, hover);
     };
     remain = remain.saturating_sub(width(&sep));
     let actions = first_fit(&variants(Vec::new(), &mode_actions(mode), true), remain);
@@ -453,7 +711,7 @@ pub fn render_bar_with(mode: &str, cols: usize, multi_pane: bool, chrome: &Chrom
         out.extend(sep);
         out.extend(actions);
     }
-    finish(out, cols, chrome)
+    finish(out, cols, chrome, hover)
 }
 
 #[cfg(test)]
@@ -571,5 +829,53 @@ mod tests {
             }
         }
         assert!(found);
+    }
+
+    #[test]
+    fn resize_chip_is_nine_cells() {
+        let hits = render_bar_with("normal", 220, false, &Chrome::default(), None).1;
+        let hit = hits
+            .iter()
+            .find(|h| h.click == Click::Mode("resize"))
+            .expect("resize chip");
+        assert_eq!(hit.end - hit.start, 9);
+        let text = shown("normal", 220, false);
+        assert_eq!(
+            &text.chars().skip(hit.start).take(9).collect::<String>(),
+            "^N Resize"
+        );
+    }
+
+    #[test]
+    fn arrow_hits_are_one_cell() {
+        let hits = render_bar_with("normal", 220, true, &Chrome::default(), None).1;
+        let arrows: Vec<_> = hits
+            .iter()
+            .filter(|h| {
+                matches!(
+                    h.click,
+                    Click::FocusLeft | Click::FocusDown | Click::FocusUp | Click::FocusRight
+                )
+            })
+            .collect();
+        assert_eq!(arrows.len(), 4);
+        for hit in arrows {
+            assert_eq!(hit.end - hit.start, 1);
+        }
+    }
+
+    #[test]
+    fn hover_inverts_chip_without_new_colors() {
+        let chrome = Chrome::default();
+        let idle = render_bar_with("normal", 220, false, &chrome, None).0;
+        let hits = render_bar_with("normal", 220, false, &chrome, None).1;
+        let resize = hits
+            .iter()
+            .find(|h| h.click == Click::Mode("resize"))
+            .unwrap();
+        let hovered = render_bar_with("normal", 220, false, &chrome, Some(resize.start)).0;
+        assert_ne!(idle, hovered);
+        assert!(hovered.contains(&format!("22;{};{}", chrome.light.fg(), chrome.dark.bg())));
+        assert!(!hovered.contains("38;5;255;48;5;255"));
     }
 }

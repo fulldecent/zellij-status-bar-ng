@@ -49,7 +49,7 @@ It does not depend on [Zellij Tab Bar Ribbons](https://github.com/fulldecent/zel
 
 3. Start a new session. Quit Zellij, or open a new terminal and run `zellij`. The session that is already running keeps the plugin it started with.
 
-4. Grant `ReadApplicationState` when Zellij asks. The question is drawn in the one-row status bar. Click that row and press `y`.
+4. Grant `ReadApplicationState`, `ChangeApplicationState`, and `RunActionsAsUser` when Zellij asks. Click that row and press `y`.
 
 ## Installation
 
@@ -96,6 +96,8 @@ If there is no GitHub release yet, build the wasm (see Development) and copy `ta
 ## Usage
 
 In Normal mode the bottom line shows chips such as `^G Lock` and `Alt + ⌥N New Pane`, with no ``. `Ctrl +` is bold. The chip is the theme’s dark ribbon color on the ribbon gray, and the label is that gray on the bar.
+
+Click a chip to run that action. Hover inverts the hit target’s colors. A combo such as `⌥←↓↑→` highlights and clicks one arrow. A chip such as `^N Resize` is nine cells, all one target.
 
 ### GNU nano display of shortcuts
 

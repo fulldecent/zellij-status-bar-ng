@@ -1,6 +1,6 @@
 use unicode_width::UnicodeWidthStr;
 
-use crate::layout::{render_bar_with, Chrome};
+use crate::layout::{render_bar_with, Chrome, Hit};
 
 /// Snapshot the status plugin would paint for one mode. No Zellij I/O.
 #[derive(Clone, Debug)]
@@ -8,6 +8,7 @@ pub struct StatusState {
     pub mode: &'static str,
     pub multi_pane: bool,
     pub chrome: Chrome,
+    pub hover_col: Option<usize>,
 }
 
 impl Default for StatusState {
@@ -16,12 +17,31 @@ impl Default for StatusState {
             mode: "normal",
             multi_pane: false,
             chrome: Chrome::default(),
+            hover_col: None,
         }
     }
 }
 
 pub fn render_status_line(cols: usize, state: &StatusState) -> String {
-    render_bar_with(state.mode, cols, state.multi_pane, &state.chrome)
+    render_bar_with(
+        state.mode,
+        cols,
+        state.multi_pane,
+        &state.chrome,
+        state.hover_col,
+    )
+    .0
+}
+
+pub fn render_status_hits(cols: usize, state: &StatusState) -> Vec<Hit> {
+    render_bar_with(
+        state.mode,
+        cols,
+        state.multi_pane,
+        &state.chrome,
+        state.hover_col,
+    )
+    .1
 }
 
 pub fn visible_width(rendered: &str) -> usize {
