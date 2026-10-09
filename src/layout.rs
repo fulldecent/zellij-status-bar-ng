@@ -433,6 +433,20 @@ fn ctrl_prefix() -> Vec<Chunk> {
     vec![Chunk::bold(" Ctrl + ")]
 }
 
+/// Context word for an active input mode. Shown at the far left, before `Ctrl +`.
+fn mode_heading(mode: &str) -> Option<&'static str> {
+    match mode {
+        "pane" => Some("Pane"),
+        "tab" => Some("Tab"),
+        "resize" => Some("Resize"),
+        "move" => Some("Move"),
+        "scroll" => Some("Search"),
+        "session" => Some("Session"),
+        "tmux" => Some("Tmux"),
+        _ => None,
+    }
+}
+
 fn alt_prefix() -> Vec<Chunk> {
     vec![Chunk::orange("Alt + ")]
 }
@@ -529,13 +543,6 @@ fn indicator(mode: &str) -> Option<Vec<Hint>> {
     let items = match mode {
         "normal" => normal_modes(),
         "locked" => vec![chip("^G", "Lock", "Lock", Click::Mode("normal"))],
-        "pane" => vec![chip("^P", "Pane", "Pane", Click::Mode("normal"))],
-        "tab" => vec![chip("^T", "Tab", "Tab", Click::Mode("normal"))],
-        "resize" => vec![chip("^N", "Resize", "Resize", Click::Mode("normal"))],
-        "move" => vec![chip("^H", "Move", "Move", Click::Mode("normal"))],
-        "scroll" => vec![chip("^S", "Search", "Search", Click::Mode("normal"))],
-        "session" => vec![chip("^O", "Session", "Session", Click::Mode("normal"))],
-        "tmux" => vec![chip("^B", "Tmux", "Tmux", Click::Mode("normal"))],
         _ => return None,
     };
     Some(items)
@@ -652,16 +659,15 @@ pub fn render_bar_with(
         return (String::new(), Vec::new());
     }
 
-    let ctrl_options = indicator(mode)
-        .map(|items| variants(ctrl_prefix(), &items, false))
-        .unwrap_or_else(|| vec![Vec::new()]);
-    let alt_options = if mode == "normal" {
-        variants(alt_prefix(), &alt_items(multi_pane), true)
-    } else {
-        vec![Vec::new()]
-    };
-
     if mode == "normal" || mode == "locked" {
+        let ctrl_options = indicator(mode)
+            .map(|items| variants(ctrl_prefix(), &items, false))
+            .unwrap_or_else(|| vec![Vec::new()]);
+        let alt_options = if mode == "normal" {
+            variants(alt_prefix(), &alt_items(multi_pane), true)
+        } else {
+            vec![Vec::new()]
+        };
         // Keep the Ctrl group as large as possible. Only the leftover width is
         // offered to Alt, which then uses the largest form that fits there.
         for ctrl in &ctrl_options {
@@ -682,11 +688,31 @@ pub fn render_bar_with(
         return finish(Vec::new(), cols, chrome, hover);
     }
 
-    let ctrl = first_fit(&ctrl_options, cols);
-    if plain_text(&ctrl) == "..." {
-        return finish(ctrl, cols, chrome, hover);
+    if let Some(heading) = mode_heading(mode) {
+        let prefix = vec![Chunk::orange(heading), Chunk::bold(" Ctrl + ")];
+        let actions = mode_actions(mode);
+        let mut options = variants(prefix.clone(), &actions, true);
+        let mut compact = Vec::new();
+        if let Some(first) = actions.first() {
+            let mut row = prefix.clone();
+            row.extend(token_chunks(first));
+            compact.push(row);
+        }
+        compact.push(prefix);
+        compact.push(vec![Chunk::orange(heading)]);
+        match options.iter().position(|row| plain_text(row) == "...") {
+            Some(i) => {
+                for row in compact.into_iter().rev() {
+                    options.insert(i, row);
+                }
+            }
+            None => options.extend(compact),
+        }
+        let chosen = first_fit(&options, cols);
+        return finish(chosen, cols, chrome, hover);
     }
-    let mut remain = cols.saturating_sub(width(&ctrl));
+
+    let mut remain = cols;
     let sep = if let Some(title) = help_title(mode) {
         let text = format!(" {title}  ");
         if text.chars().count() <= remain {
@@ -702,14 +728,15 @@ pub fn render_bar_with(
         None
     };
     let Some(sep) = sep else {
-        return finish(ctrl, cols, chrome, hover);
+        return finish(Vec::new(), cols, chrome, hover);
     };
     remain = remain.saturating_sub(width(&sep));
     let actions = first_fit(&variants(Vec::new(), &mode_actions(mode), true), remain);
-    let mut out = ctrl;
+    let mut out = sep;
     if !actions.is_empty() {
-        out.extend(sep);
         out.extend(actions);
+    } else {
+        out = Vec::new();
     }
     finish(out, cols, chrome, hover)
 }
@@ -877,5 +904,99 @@ mod tests {
         assert_ne!(idle, hovered);
         assert!(hovered.contains(&format!("22;{};{}", chrome.light.fg(), chrome.dark.bg())));
         assert!(!hovered.contains("38;5;255;48;5;255"));
+    }
+
+    #[test]
+    fn active_mode_name_sits_left_of_ctrl() {
+        for (mode, name) in [
+            ("pane", "Pane"),
+            ("tab", "Tab"),
+            ("resize", "Resize"),
+            ("move", "Move"),
+            ("scroll", "Search"),
+            ("session", "Session"),
+            ("tmux", "Tmux"),
+        ] {
+            let raw = render_bar(mode, 220, false);
+            let text = visible(&raw);
+            assert!(
+                text.starts_with(&format!("{name} Ctrl + ")),
+                "{mode} should start with {name} Ctrl +: {text}"
+            );
+            assert!(
+                raw.contains(&format!("\u{1b}[22;38;5;166;48;5;16m{name}")),
+                "{mode} heading should be orange: {raw}"
+            );
+            assert!(
+                raw.contains("\u{1b}[1;38;5;255;48;5;16m Ctrl + "),
+                "{mode} should keep a bold Ctrl + after the heading"
+            );
+        }
+
+        let session = shown("session", 220, false);
+        assert!(session.contains("^D Detach"), "{session}");
+        assert!(
+            !session.contains("^O Session"),
+            "session mode should not repeat the Session chip after Ctrl +: {session}"
+        );
+
+        let tab = shown("tab", 220, false);
+        assert!(tab.contains("^N New"), "{tab}");
+        assert!(
+            !tab.contains("^T Tab"),
+            "tab mode should not repeat the Tab chip after Ctrl +: {tab}"
+        );
+
+        let normal = shown("normal", 220, false);
+        assert!(normal.starts_with(" Ctrl + "), "{normal}");
+        assert!(!normal.starts_with("Normal"), "{normal}");
+
+        let locked = shown("locked", 220, false);
+        assert!(locked.starts_with(" Ctrl + "), "{locked}");
+        assert!(locked.contains("^G Lock"), "{locked}");
+    }
+
+    #[test]
+    fn narrow_active_mode_keeps_the_heading() {
+        for (mode, name) in [
+            ("pane", "Pane"),
+            ("tab", "Tab"),
+            ("resize", "Resize"),
+            ("move", "Move"),
+            ("scroll", "Search"),
+            ("session", "Session"),
+            ("tmux", "Tmux"),
+        ] {
+            let prefix_width = format!("{name} Ctrl + ").chars().count();
+            let with_ctrl = shown(mode, prefix_width, false);
+            assert!(
+                with_ctrl.starts_with(&format!("{name} Ctrl +")),
+                "{mode} at {prefix_width}: {with_ctrl}"
+            );
+
+            let name_width = name.chars().count();
+            let headed = shown(mode, name_width, false);
+            assert!(headed.starts_with(name), "{mode} at {name_width}: {headed}");
+        }
+
+        // Session prefix is 15 cells; the old shortest headed form was 21.
+        let session_15 = shown("session", 15, false);
+        assert!(session_15.starts_with("Session Ctrl +"), "{session_15}");
+        assert!(!session_15.contains("..."), "{session_15}");
+
+        let session_17 = shown("session", 17, false);
+        assert!(session_17.starts_with("Session Ctrl + ^D"), "{session_17}");
+        assert!(!session_17.contains("..."), "{session_17}");
+
+        let normal_10 = shown("normal", 10, false);
+        assert!(
+            normal_10.starts_with("..."),
+            "normal at 10 should stay on the ellipsis: {normal_10}"
+        );
+        let locked_10 = shown("locked", 10, false);
+        assert!(
+            locked_10.starts_with("..."),
+            "locked at 10 should stay on the ellipsis: {locked_10}"
+        );
     }
 }
