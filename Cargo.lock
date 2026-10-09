@@ -1441,6 +1441,7 @@ version = "1.0.0"
 dependencies = [
  "unicode-width 0.2.2",
  "zellij-tile",
+ "zellij-utils",
 ]
 
 [[package]]

@@ -17,6 +17,8 @@
 
 ## Unreleased
 
+- In-mode shortcuts drop the `^` caret. Session shows `L Layout Manager`, because the extra key is unmodified once the mode is active.
+- Clicking Session chips such as Layout Manager launches the floating plugin instead of only leaving the mode.
 - Active modes (Tab, Session, Pane, and the rest) put that name at the far left, before `Ctrl +`, so the following shortcuts read as that mode’s commands.
 - Rebuild from the prior status-bar-ng tree on the zellij-plugin-template layout, reverse-DNS wasm names, and signed releases.
 - README pictures are SVG from Zellij Plugin Snapshot. The PNG Chrome gallery is gone.
