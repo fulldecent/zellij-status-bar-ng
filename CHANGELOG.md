@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.1.0](https://github.com/fulldecent/zellij-status-bar-ng/compare/v1.0.0...v1.1.0) (2026-10-10)
+
+
+### Features
+
+* put the active mode name left of Ctrl + ([9c84be4](https://github.com/fulldecent/zellij-status-bar-ng/commit/9c84be4d9dc80e869f5242f5687cd055f3a94070))
+* put the active mode name left of Ctrl + ([67f983f](https://github.com/fulldecent/zellij-status-bar-ng/commit/67f983f59e200244248728c766c6fb51dc889b90))
+
+
+### Bug Fixes
+
+* copy screenshot.svg to the repository root in the refresh hint ([b0a0a8f](https://github.com/fulldecent/zellij-status-bar-ng/commit/b0a0a8f42c99a3b8de1f12fdfd058e5f34ff7ba5))
+* keep compact heading fallbacks off Normal and Locked ([ce83dfa](https://github.com/fulldecent/zellij-status-bar-ng/commit/ce83dfa76a6f9277ec30fa7ad0c1285303a836b7))
+* keep the mode heading on narrow panes ([fea2663](https://github.com/fulldecent/zellij-status-bar-ng/commit/fea26636bf916e205d97f740997738418466068a))
+* unchorded in-mode keys and floating plugin clicks ([9b5ad0a](https://github.com/fulldecent/zellij-status-bar-ng/commit/9b5ad0a6f63f8fe544531e6530c80a0e4e405acc))
+* unchorded in-mode keys and floating plugin clicks ([def16c3](https://github.com/fulldecent/zellij-status-bar-ng/commit/def16c324d6ea03ac58e04bfbeafef374e7d94ea))
+
 ## 1.0.0 (2026-10-09)
 
 
