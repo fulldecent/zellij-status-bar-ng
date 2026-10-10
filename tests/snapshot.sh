@@ -1,5 +1,5 @@
 #!/bin/sh
-# Build the plugin wasm and require render() bytes to match shots/screenshot.ansi.txt.
+# Build the plugin wasm and require render() bytes to match shots/*.ansi.txt.
 #
 # zellij-plugin-snapshot is a command. [dependencies] and [dev-dependencies]
 # link a library into the wasm or into `cargo test`, so they leave this binary
@@ -54,13 +54,19 @@ for yaml in shots/*.yaml; do
   zellij-plugin-snapshot "$yaml" --out "$out"
   if ! diff -u "shots/${stem}.ansi.txt" "$out/${stem}.ansi.txt"; then
     echo "Render bytes differ from shots/${stem}.ansi.txt." >&2
+    echo "When that change is intended:" >&2
+    echo "  zellij-plugin-snapshot shots/${stem}.yaml --out /tmp/shots" >&2
+    echo "  cp /tmp/shots/${stem}.ansi.txt shots/${stem}.ansi.txt" >&2
+    # screenshot.svg is the 80-column picture linked from the repository root.
+    # The other pictures live beside their YAML scripts.
+    if [ "$stem" = screenshot ]; then
+      echo "  cp /tmp/shots/${stem}.svg screenshot.svg" >&2
+    else
+      echo "  cp /tmp/shots/${stem}.svg shots/${stem}.svg" >&2
+    fi
     failed=1
   fi
 done
 if [ "$failed" -ne 0 ]; then
-  echo "When that change is intended, refresh the committed files:" >&2
-  echo "  zellij-plugin-snapshot shots/screenshot.yaml --out /tmp/shots" >&2
-  echo "  cp /tmp/shots/screenshot.ansi.txt shots/screenshot.ansi.txt" >&2
-  echo "  cp /tmp/shots/screenshot.svg screenshot.svg" >&2
   exit 1
 fi

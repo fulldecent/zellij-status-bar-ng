@@ -1,0 +1,20 @@
+# Normal mode, pointer on column 34.
+# On this 80-column line that cell is the ^ of ^N Resize, and the whole chip inverts.
+# Count cells in shots/screenshot.ansi.txt: the chip occupies columns 34 through 42.
+name: hover
+plugin: ../target/wasm32-wasip1/release/plugin.wasm
+geometry:
+  rows: 1
+  cols: 80
+steps:
+  - action: grant_permissions
+  - action: mode_update
+    mode: normal
+    session: demo
+  - action: tab_update
+    tabs:
+      - name: Tab
+        active: true
+        tiled: 1
+  - action: event_json
+    json: '{"Mouse":{"Hover":[0,34]}}'
