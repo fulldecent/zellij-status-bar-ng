@@ -2,8 +2,8 @@
 //!
 //! Port of `default-plugins/status-bar` at tag `v0.45.1`
 //! (`render_common_modifiers`, `long_mode_shortcut`, and the shortened
-//! key ribbon in `one_line_ui.rs`). The upstream crate does not build
-//! outside the Zellij workspace. The sources are in `third_party/`.
+//! key ribbon in `one_line_ui.rs`) for `InputMode::Normal`. The upstream
+//! plugin depends on crates from the Zellij workspace.
 
 use unicode_width::UnicodeWidthStr;
 

@@ -254,5 +254,5 @@ Out of scope:
 1. Zellij offers another installation method that points your layout configuration to an HTTPS URL. We consider that feature wrong and deprecated.
 1. We speak of the official rustup installation recommendation as ugly. [Reported upstream](https://github.com/rust-lang/rust/issues/163468).
 1. Render snapshots follow [Zellij Plugin Snapshot](https://github.com/fulldecent/zellij-plugin-snapshot) 0.2.2.
-1. The stock comparison renderer is derived from Zellij’s `default-plugins/status-bar` at tag `v0.45.1` (MIT). Those sources are in [`third_party/`](third_party/PROVENANCE.md).
+1. The stock comparison renderer follows [Zellij’s `default-plugins/status-bar`](https://github.com/zellij-org/zellij/tree/v0.45.1/default-plugins/status-bar) at tag `v0.45.1` (MIT); only the normal-mode key ribbon behavior is ported.
 1. This project is released under the [MIT license](./LICENSE.md).
