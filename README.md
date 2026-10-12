@@ -29,17 +29,15 @@ It does not depend on [Zellij Tab Bar Ribbons](https://github.com/fulldecent/zel
    curl -fL -o ~/.config/zellij/plugins/"${name}.sigstore.jsonl" "$base/${name}.sigstore.jsonl"
    ```
 
-   The release asset names match this local file. `curl -f` fails if the wasm or the sidecar is missing.
-
-   Verify with `gh` (exit 0):
+   If you have the `gh` command, verify the file build attestation:
 
    ```sh
    gh attestation verify ~/.config/zellij/plugins/"$name" \
      -R fulldecent/zellij-status-bar-ng \
-     --bundle ~/.config/zellij/plugins/"${name}.sigstore.jsonl"
+     --bundle ~/.config/zellij/plugins/"${name}.sigstore.jsonl" && echo 'Valid'
    ```
 
-2. Put it on the bottom row. This starts a new session, or a new tab if you are already in Zellij:
+2. Start a new session (or tab if already in Zellij):
 
    ```sh
    zellij --layout-string 'layout {
@@ -55,19 +53,19 @@ It does not depend on [Zellij Tab Bar Ribbons](https://github.com/fulldecent/zel
 
    Grant `ReadApplicationState`, `ChangeApplicationState`, and `RunActionsAsUser` when Zellij asks. Click that row and press `y`.
 
+3. Try accessing the session menu (`^O`) and notice how the status bar updates. Also try clicking buttons there.
+
 ## Installation
 
-Download with [Try it out](#try-it-out) step 1.
+Use [Try it out](#try-it-out) > step 1 to download and grant permissions.
 
-Replace the existing `status-bar` line inside `plugins { }` in `~/.config/zellij/config.kdl`:
+Open your `~/.config/zellij/config.kdl` and replace the existing `status-bar` line with:
 
 ```kdl
 status-bar location="file:~/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"
 ```
 
-Start a new session. Quit Zellij, or open a new terminal and run `zellij`. The session that is already running keeps the plugin it started with.
-
-Grant `ReadApplicationState`, `ChangeApplicationState`, and `RunActionsAsUser` when Zellij asks. Click that row and press `y`.
+Quit and reopen Zellij to load your new status bar!
 
 If you already have `layouts/default.kdl`, keep `plugin location="status-bar"` on the bottom row.
 
@@ -130,6 +128,8 @@ A wide terminal keeps labels. A narrow one shortens names, then drops names from
 Widths 1 through 100 are covered by `tests/widths.rs`. The pictures are SVG from [Zellij Plugin Snapshot](https://github.com/fulldecent/zellij-plugin-snapshot). Session mode, Tab mode, and mouse-over pictures are in the [gallery](README-RESPONSIVE-GALLERY.md).
 
 ### Revert to the stock status bar
+
+Edit your `~/.config/zellij/config.kdl` again and replace the `status-bar` line with:
 
 ```kdl
 status-bar location="zellij:status-bar"
