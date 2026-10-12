@@ -39,7 +39,7 @@ It does not depend on [Zellij Tab Bar Ribbons](https://github.com/fulldecent/zel
      --bundle ~/.config/zellij/plugins/"${name}.sigstore.jsonl"
    ```
 
-2. Zellij’s default layout loads the `status-bar` alias. In `~/.config/zellij/config.kdl`:
+2. Replace the existing `status-bar` line inside `plugins { }` in `~/.config/zellij/config.kdl`:
 
    ```kdl
    status-bar location="file:~/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"
