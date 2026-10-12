@@ -2,20 +2,17 @@
 
 [![Lint](https://github.com/fulldecent/zellij-status-bar-ng/actions/workflows/lint.yml/badge.svg)](https://github.com/fulldecent/zellij-status-bar-ng/actions/workflows/lint.yml) [![Build and test](https://github.com/fulldecent/zellij-status-bar-ng/actions/workflows/build-test.yml/badge.svg)](https://github.com/fulldecent/zellij-status-bar-ng/actions/workflows/build-test.yml)
 
-A drop-in replacement for Zellij’s default `status-bar` plugin. Same key-hint information, drawn like GNU nano instead of chevron / powerline pills, fully responsive across terminal widths. Colors follow the active Zellij theme. The goal is to become the default status bar.
+A drop-in replacement for Zellij’s default `status-bar` plugin. We follow the active Zellij theme, and our goal is to become the default status bar.
 
 Zellij Status Bar Next-Generation offers:
 
-* A wasm you can drop into `~/.config/zellij/plugins` without compiling
-* A stable reverse-DNS file name so upgrades overwrite the same path
-* A signed sidecar that records the release version
-* Width-aware GNU nano shortcut chips that stay inside the screen
+* GNU nano-style key hints (instead of chevron / powerline pills)
+* Fully responsive across all terminal widths
+* Click-to-activate any shortcut
 
 ![This status bar at 80 columns](screenshot.svg)
 
 This is a [Zellij](https://zellij.dev/) plugin and supports Zellij 0.45 or newer.
-
-It does not depend on [Zellij Tab Bar Ribbons](https://github.com/fulldecent/zellij-tab-bar-ribbons) or on zjstatus. You can install this plugin alone.
 
 ## Try it out
 
@@ -34,7 +31,7 @@ It does not depend on [Zellij Tab Bar Ribbons](https://github.com/fulldecent/zel
    ```sh
    gh attestation verify ~/.config/zellij/plugins/"$name" \
      -R fulldecent/zellij-status-bar-ng \
-     --bundle ~/.config/zellij/plugins/"${name}.sigstore.jsonl" && echo 'Valid'
+     --bundle ~/.config/zellij/plugins/"${name}.sigstore.jsonl"
    ```
 
 2. Start a new session (or tab if already in Zellij):
@@ -57,7 +54,7 @@ It does not depend on [Zellij Tab Bar Ribbons](https://github.com/fulldecent/zel
 
 ## Installation
 
-Use [Try it out](#try-it-out) to download the plugin.
+Use [Try it out](#try-it-out) to download the plugin (this also confirms permissions).
 
 Open your `~/.config/zellij/config.kdl` and replace the existing `status-bar` line with:
 
@@ -67,17 +64,9 @@ status-bar location="file:~/.config/zellij/plugins/com.github.fulldecent.zellij-
 
 Quit and reopen Zellij to load your new status bar!
 
-Grant `ReadApplicationState`, `ChangeApplicationState`, and `RunActionsAsUser` when Zellij asks. Click that row and press `y`.
-
 If you already have `layouts/default.kdl`, keep `plugin location="status-bar"` on the bottom row.
 
-Upgrade: repeat Try it out step 1, then start a new session.
-
-Three mistakes that leave the stock chevrons on screen:
-
-1. Adding a new name, such as `nano location="file:…"`. The default layout never asks for `nano`. The alias must be `status-bar`.
-2. Putting the path in `load_plugins { }`. That block starts background plugins. The status bar is not one of them.
-3. Staying inside the session you already had open. A new tab is not a new session. Plugin paths are read when a session starts.
+To upgrade: repeat [Try it out](#try-it-out) > step 1, then start a new session.
 
 ## Usage
 
@@ -129,7 +118,7 @@ A wide terminal keeps labels. A narrow one shortens names, then drops names from
 
 Widths 1 through 100 are covered by `tests/widths.rs`. The pictures are SVG from [Zellij Plugin Snapshot](https://github.com/fulldecent/zellij-plugin-snapshot). Session mode, Tab mode, and mouse-over pictures are in the [gallery](README-RESPONSIVE-GALLERY.md).
 
-### Revert to the stock status bar
+### Uninstall
 
 Edit your `~/.config/zellij/config.kdl` again and replace the `status-bar` line with:
 
