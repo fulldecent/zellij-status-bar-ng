@@ -220,7 +220,7 @@ npx markdownlint-cli@latest "**/*.md" --fix
 
 Use `fix:`, `feat:` or `BREAKING CHANGE:` in your commit messages. Merging the Release Please pull request triggers a new tag and GitHub Release.
 
-The wasm file name is `com.github.fulldecent.zellij-status-bar-ng.wasm`. Set the version in [Cargo.toml](Cargo.toml) and [Cargo.lock](Cargo.lock) to the proposed release version before merging the release pull request.
+The wasm file name is `com.github.fulldecent.zellij-status-bar-ng.wasm`. The GitHub Release tag is the version. The sidecar records that version.
 
 ### Maintenance
 
