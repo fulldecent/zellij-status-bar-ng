@@ -8,7 +8,7 @@ Zellij Status Bar Next-Generation offers:
 
 * A wasm you can drop into `~/.config/zellij/plugins` without compiling
 * A stable reverse-DNS file name so upgrades overwrite the same path
-* A signed sidecar next to that file (`urn:version` is the release)
+* A signed sidecar that records the release version
 * Width-aware GNU nano shortcut chips that stay inside the screen
 
 ![This status bar at 80 columns](screenshot.svg)
