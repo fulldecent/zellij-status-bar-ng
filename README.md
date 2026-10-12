@@ -39,10 +39,18 @@ It does not depend on [Zellij Tab Bar Ribbons](https://github.com/fulldecent/zel
      --bundle ~/.config/zellij/plugins/"${name}.sigstore.jsonl"
    ```
 
-2. From inside a Zellij session, load the plugin as a pane, without changing `config.kdl`:
+2. Put it on the bottom row. This starts a new session, or a new tab if you are already in Zellij:
 
    ```sh
-   zellij action start-or-reload-plugin "file:~/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"
+   zellij --layout-string 'layout {
+       pane size=1 borderless=true {
+           plugin location="tab-bar"
+       }
+       pane
+       pane size=1 borderless=true {
+           plugin location="file:~/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"
+       }
+   }'
    ```
 
    Grant `ReadApplicationState`, `ChangeApplicationState`, and `RunActionsAsUser` when Zellij asks. Click that row and press `y`.
