@@ -8,7 +8,7 @@ Zellij Status Bar Next-Generation offers:
 
 * A wasm you can drop into `~/.config/zellij/plugins` without compiling
 * A stable reverse-DNS file name so upgrades overwrite the same path
-* A signed sidecar next to that file so you can check which release you installed
+* A signed sidecar next to that file (`urn:version` is the release)
 * Width-aware GNU nano shortcut chips that stay inside the screen
 
 ![This status bar at 80 columns](screenshot.svg)
@@ -31,7 +31,7 @@ It does not depend on [Zellij Tab Bar Ribbons](https://github.com/fulldecent/zel
 
    The release asset names match this local file. `curl -f` fails if the wasm or the sidecar is missing.
 
-   Check the file against the sidecar:
+   Verify with `gh` (exit 0):
 
    ```sh
    gh attestation verify ~/.config/zellij/plugins/"$name" \
