@@ -29,59 +29,49 @@ It does not depend on [Zellij Tab Bar Ribbons](https://github.com/fulldecent/zel
    curl -fL -o ~/.config/zellij/plugins/"${name}.sigstore.jsonl" "$base/${name}.sigstore.jsonl"
    ```
 
-   The release asset names match this local file. `curl -f` fails if the wasm or the sidecar is missing.
-
-   Verify with `gh` (exit 0):
+   If you have the `gh` command, verify the file build attestation:
 
    ```sh
    gh attestation verify ~/.config/zellij/plugins/"$name" \
      -R fulldecent/zellij-status-bar-ng \
-     --bundle ~/.config/zellij/plugins/"${name}.sigstore.jsonl"
+     --bundle ~/.config/zellij/plugins/"${name}.sigstore.jsonl" && echo 'Valid'
    ```
 
-2. Replace the existing `status-bar` line inside `plugins { }` in `~/.config/zellij/config.kdl`:
+2. Start a new session (or tab if already in Zellij):
 
-   ```kdl
-   status-bar location="file:~/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"
+   ```sh
+   zellij --layout-string 'layout {
+       pane size=1 borderless=true {
+           plugin location="tab-bar"
+       }
+       pane
+       pane size=1 borderless=true {
+           plugin location="file:~/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"
+       }
+   }'
    ```
 
-3. Start a new session. Quit Zellij, or open a new terminal and run `zellij`. The session that is already running keeps the plugin it started with.
+   Grant `ReadApplicationState`, `ChangeApplicationState`, and `RunActionsAsUser` when Zellij asks. Click that row and press `y`.
 
-4. Grant `ReadApplicationState`, `ChangeApplicationState`, and `RunActionsAsUser` when Zellij asks. Click that row and press `y`.
+3. Try accessing the session menu (`^O`) and notice how the status bar updates. Also try clicking buttons there.
 
 ## Installation
 
-Complete the [try it out instructions](#try-it-out) above to download the plugin.
+Use [Try it out](#try-it-out) to download the plugin.
 
-You will now be adding this plugin to your default layout.
+Open your `~/.config/zellij/config.kdl` and replace the existing `status-bar` line with:
 
-1. First, create a default layout if you don't already have one:
+```kdl
+status-bar location="file:~/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"
+```
 
-   ```sh
-   mkdir -p ~/.config/zellij/layouts
-   DEST=~/.config/zellij/layouts/default.kdl
-   [ -f "$DEST" ] || zellij setup --dump-layout default > $DEST
-   ```
+Quit and reopen Zellij to load your new status bar!
 
-2. Then, replace `status-bar` with this plugin:
+Grant `ReadApplicationState`, `ChangeApplicationState`, and `RunActionsAsUser` when Zellij asks. Click that row and press `y`.
 
-   ```diff
-   - plugin location="status-bar"
-   + plugin location="file:~/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"
-   ```
+If you already have `layouts/default.kdl`, keep `plugin location="status-bar"` on the bottom row.
 
-   Or, non-interactively:
-
-   ```sh
-   plugin="${HOME}/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"
-   DEST=~/.config/zellij/layouts/default.kdl
-   sed -i '' \
-     -e "s|plugin location=\"status-bar\"|plugin location=\"file:${plugin}\"|" \
-     -e "s|plugin location=\"file:.*com.github.fulldecent.zellij-status-bar-ng\\.wasm\"|plugin location=\"file:${plugin}\"|" \
-     "$DEST"
-   ```
-
-Repeat the same try it out + installation steps to upgrade. The wasm file name is stable, so upgrading overwrites that file and your layout path stays the same. The sidecar next to it records which release version you downloaded.
+Upgrade: repeat Try it out step 1, then start a new session.
 
 Three mistakes that leave the stock chevrons on screen:
 
@@ -140,6 +130,8 @@ A wide terminal keeps labels. A narrow one shortens names, then drops names from
 Widths 1 through 100 are covered by `tests/widths.rs`. The pictures are SVG from [Zellij Plugin Snapshot](https://github.com/fulldecent/zellij-plugin-snapshot). Session mode, Tab mode, and mouse-over pictures are in the [gallery](README-RESPONSIVE-GALLERY.md).
 
 ### Revert to the stock status bar
+
+Edit your `~/.config/zellij/config.kdl` again and replace the `status-bar` line with:
 
 ```kdl
 status-bar location="zellij:status-bar"
