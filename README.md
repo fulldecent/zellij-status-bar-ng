@@ -91,8 +91,6 @@ Three mistakes that leave the stock chevrons on screen:
 2. Putting the path in `load_plugins { }`. That block starts background plugins. The status bar is not one of them.
 3. Staying inside the session you already had open. A new tab is not a new session. Plugin paths are read when a session starts.
 
-If there is no GitHub release yet, build the wasm (see Development) and copy `target/wasm32-wasip1/release/plugin.wasm` to `~/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm`.
-
 ## Usage
 
 In Normal mode the bottom line shows chips such as `^G Lock` and `Alt + ⌥N New Pane`, with no ``. `Ctrl +` is bold. The chip is the theme’s dark ribbon color on the ribbon gray, and the label is that gray on the bar.
