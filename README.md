@@ -39,12 +39,10 @@ It does not depend on [Zellij Tab Bar Ribbons](https://github.com/fulldecent/zel
      --bundle ~/.config/zellij/plugins/"${name}.sigstore.jsonl"
    ```
 
-2. Point the `status-bar` alias at that file. Zellij’s default layout puts whatever plugin is aliased as `status-bar` on the bottom row.
+2. Zellij’s default layout loads the `status-bar` alias. In `~/.config/zellij/config.kdl`:
 
-   Open `~/.config/zellij/config.kdl`. Change the existing `status-bar` line. Zellij 0.45.1 loads an absolute `file:` URL. `~` inside the quoted string is not a home directory.
-
-   ```sh
-   printf '    status-bar location="file:%s/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"\n' "$HOME"
+   ```kdl
+   status-bar location="file:~/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"
    ```
 
 3. Start a new session. Quit Zellij, or open a new terminal and run `zellij`. The session that is already running keeps the plugin it started with.
