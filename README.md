@@ -57,7 +57,7 @@ It does not depend on [Zellij Tab Bar Ribbons](https://github.com/fulldecent/zel
 
 ## Installation
 
-Use [Try it out](#try-it-out) to download and grant permissions.
+Use [Try it out](#try-it-out) to download the plugin.
 
 Open your `~/.config/zellij/config.kdl` and replace the existing `status-bar` line with:
 
