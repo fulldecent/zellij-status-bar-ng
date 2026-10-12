@@ -57,7 +57,7 @@ It does not depend on [Zellij Tab Bar Ribbons](https://github.com/fulldecent/zel
 
 ## Installation
 
-Use [Try it out](#try-it-out) > step 1 to download and grant permissions.
+Use [Try it out](#try-it-out) to download and grant permissions.
 
 Open your `~/.config/zellij/config.kdl` and replace the existing `status-bar` line with:
 
@@ -66,6 +66,8 @@ status-bar location="file:~/.config/zellij/plugins/com.github.fulldecent.zellij-
 ```
 
 Quit and reopen Zellij to load your new status bar!
+
+Grant `ReadApplicationState`, `ChangeApplicationState`, and `RunActionsAsUser` when Zellij asks. Click that row and press `y`.
 
 If you already have `layouts/default.kdl`, keep `plugin location="status-bar"` on the bottom row.
 
