@@ -192,7 +192,7 @@ cd zellij-status-bar-ng
 Run this directly with:
 
 ```sh
-zellij --layout layout/plugin-dev.status-bar.kdl
+zellij --layout layout/dev.kdl
 ```
 
 ### Testing
