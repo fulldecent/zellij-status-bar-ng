@@ -2,7 +2,7 @@
 
 [![Lint](https://github.com/fulldecent/zellij-status-bar-ng/actions/workflows/lint.yml/badge.svg)](https://github.com/fulldecent/zellij-status-bar-ng/actions/workflows/lint.yml) [![Build and test](https://github.com/fulldecent/zellij-status-bar-ng/actions/workflows/build-test.yml/badge.svg)](https://github.com/fulldecent/zellij-status-bar-ng/actions/workflows/build-test.yml)
 
-A drop-in replacement for Zellij’s default `status-bar` plugin. Same key-hint information, drawn like GNU nano instead of chevron / powerline pills, with improved layout across terminal widths. Colors follow the active Zellij theme. The goal is to become the default status bar.
+A drop-in replacement for Zellij’s default `status-bar` plugin. Same key-hint information, drawn like GNU nano instead of chevron / powerline pills, fully responsive across terminal widths. Colors follow the active Zellij theme. The goal is to become the default status bar.
 
 Zellij Status Bar Next-Generation offers:
 
