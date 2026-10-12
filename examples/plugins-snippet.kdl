@@ -1,6 +1,0 @@
-// Paste over the status-bar line in plugins { } in ~/.config/zellij/config.kdl.
-// Keep the name status-bar. Do not put this in load_plugins { }.
-
-status-bar location="file:~/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"
-
-// Revert: status-bar location="zellij:status-bar"
