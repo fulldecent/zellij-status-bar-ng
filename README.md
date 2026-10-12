@@ -39,19 +39,29 @@ It does not depend on [Zellij Tab Bar Ribbons](https://github.com/fulldecent/zel
      --bundle ~/.config/zellij/plugins/"${name}.sigstore.jsonl"
    ```
 
-2. Replace the existing `status-bar` line inside `plugins { }` in `~/.config/zellij/config.kdl`:
+2. From inside a Zellij session, load the plugin as a pane, without changing `config.kdl`:
 
-   ```kdl
-   status-bar location="file:~/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"
+   ```sh
+   zellij action start-or-reload-plugin "file:~/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"
    ```
 
-3. Start a new session. Quit Zellij, or open a new terminal and run `zellij`. The session that is already running keeps the plugin it started with.
-
-4. Grant `ReadApplicationState`, `ChangeApplicationState`, and `RunActionsAsUser` when Zellij asks. Click that row and press `y`.
+   Grant `ReadApplicationState`, `ChangeApplicationState`, and `RunActionsAsUser` when Zellij asks. Click that row and press `y`.
 
 ## Installation
 
-[Try it out](#try-it-out) is the install. If you already have `layouts/default.kdl`, keep `plugin location="status-bar"` on the bottom row.
+Download with [Try it out](#try-it-out) step 1.
+
+Replace the existing `status-bar` line inside `plugins { }` in `~/.config/zellij/config.kdl`:
+
+```kdl
+status-bar location="file:~/.config/zellij/plugins/com.github.fulldecent.zellij-status-bar-ng.wasm"
+```
+
+Start a new session. Quit Zellij, or open a new terminal and run `zellij`. The session that is already running keeps the plugin it started with.
+
+Grant `ReadApplicationState`, `ChangeApplicationState`, and `RunActionsAsUser` when Zellij asks. Click that row and press `y`.
+
+If you already have `layouts/default.kdl`, keep `plugin location="status-bar"` on the bottom row.
 
 Upgrade: repeat Try it out step 1, then start a new session.
 
