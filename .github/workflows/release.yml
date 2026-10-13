@@ -47,7 +47,8 @@ jobs:
       - name: Open the release pull request
         uses: googleapis/release-please-action@v5
         with:
-          release-type: simple
+          release-type: rust
+          include-component-in-tag: false
           skip-github-release: true
 
       - name: Find a merged release pull request
@@ -58,7 +59,7 @@ jobs:
         run: |
           found=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '
             .[] | select(.merged_at != null and any(.labels[]; .name == "autorelease: pending"))
-            | "\(.number) v\(.title | capture("release (?<v>[0-9]+[.][0-9]+[.][0-9]+)").v)"' | head -n 1)
+            | "\(.number) v\(.title | capture("release (?:[^ ]+ )?v?(?<v>[0-9]+[.][0-9]+[.][0-9]+)").v)"' | head -n 1)
           if [ -n "$found" ]; then
             read -r pr tag <<< "$found"
             echo "pr=$pr" >> "$GITHUB_OUTPUT"
