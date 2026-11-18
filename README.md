@@ -174,8 +174,10 @@ Clone the project and build. On Linux and macOS:
 ```sh
 git clone https://github.com/fulldecent/zellij-status-bar-ng.git
 cd zellij-status-bar-ng
-export PATH="$(dirname "$(rustup which cargo)"):$PATH"
-export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux
+rustup show
+cargo_bin=$(rustup which cargo)
+export PATH="$(dirname "$cargo_bin"):$PATH"
+export DYLD_LIBRARY_PATH="$(cd "$(dirname "$cargo_bin")/../lib" && pwd)" # macOS only; omit on Linux
 cargo check --locked
 cargo build --locked
 ```
@@ -183,7 +185,12 @@ cargo build --locked
 In PowerShell:
 
 ```powershell
-$bin = Split-Path (rustup which cargo)
+git clone https://github.com/fulldecent/zellij-status-bar-ng.git
+Set-Location zellij-status-bar-ng
+rustup show
+$cargo = rustup which cargo
+if (-not $cargo) { exit 1 }
+$bin = Split-Path $cargo
 $env:PATH = "$bin;$env:PATH"
 cargo check --locked
 cargo build --locked
@@ -198,8 +205,10 @@ zellij --layout layout/dev.kdl
 ### Testing
 
 ```sh
-export PATH="$(dirname "$(rustup which cargo)"):$PATH"
-export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux
+rustup show
+cargo_bin=$(rustup which cargo)
+export PATH="$(dirname "$cargo_bin"):$PATH"
+export DYLD_LIBRARY_PATH="$(cd "$(dirname "$cargo_bin")/../lib" && pwd)" # macOS only; omit on Linux
 cargo test --locked --target "$(rustc -vV | sed -n 's/^host: //p')"
 cargo fmt --all -- --check
 cargo clippy --all-targets --locked -- -D warnings
@@ -209,8 +218,10 @@ cargo build --release --locked
 `cargo test` runs the Rust tests in `src/` and `tests/widths.rs`. The target in [.cargo/config.toml](.cargo/config.toml) is `wasm32-wasip1`, and that wasm cannot run these tests. [tests/snapshot.sh](tests/snapshot.sh) builds the release wasm, runs every script in [shots/](shots/), and exits non-zero unless those bytes match the committed `shots/*.ansi.txt` files. SVG is traced. `diff` does not compare it. The 80-column picture is committed as [screenshot.svg](screenshot.svg) at the repository root. The other pictures are committed beside their YAML scripts.
 
 ```sh
-export PATH="$(dirname "$(rustup which cargo)"):$PATH"
-export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux
+rustup show
+cargo_bin=$(rustup which cargo)
+export PATH="$(dirname "$cargo_bin"):$PATH"
+export DYLD_LIBRARY_PATH="$(cd "$(dirname "$cargo_bin")/../lib" && pwd)" # macOS only; omit on Linux
 cargo install zellij-plugin-snapshot --version 0.2.2 --locked
 sh tests/snapshot.sh
 ```
@@ -218,9 +229,13 @@ sh tests/snapshot.sh
 In PowerShell:
 
 ```powershell
-$bin = Split-Path (rustup which cargo)
+rustup show
+$cargo = rustup which cargo
+if (-not $cargo) { exit 1 }
+$bin = Split-Path $cargo
 $env:PATH = "$bin;$env:PATH"
-cargo test --locked --target "$((rustc -vV | Select-String '^host:').ToString().Split(' ')[1])"
+$hostTriple = (rustc -vV | Select-String '^host: ').Line.Split(' ')[1]
+cargo test --locked --target $hostTriple
 cargo fmt --all -- --check
 cargo clippy --all-targets --locked -- -D warnings
 cargo build --release --locked
