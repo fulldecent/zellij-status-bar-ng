@@ -34,7 +34,7 @@
 
 ## Unreleased
 
-- A labeled chip such as `^N Resize` reverses the key and the name together on hover, including the space on each side. A key with no name is reversed, and it turns normal on hover.
+- A labeled chip such as `^N Resize` reverses the key and the name together on hover. Exactly one space on each side is part of that target. A key with no name is reversed, and it turns normal on hover.
 - Letter combos such as `HJKL` and `⌥←↓↑→` still highlight and click one glyph.
 - Gallery pictures for Session mode, Tab mode, a hovered Resize chip, and a hovered focus arrow.
 - In-mode shortcuts drop the `^` caret. Session shows `L Layout Manager`, because the extra key is unmodified once the mode is active.

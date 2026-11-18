@@ -374,11 +374,11 @@ fn labeled_chip_at(chunks: &[Chunk], idx: usize) -> Option<Click> {
     None
 }
 
-/// The two spaces after a labeled chip join the click targets. The first is
-/// the right side of this chip. The second is the left side of the next
-/// labeled chip, or this chip's right side when nothing labeled follows.
-/// A prefix space immediately before a labeled chip is that chip's left side.
-/// Key-only chips and letter combos such as `HJKL` keep their own hits.
+/// One space on each side of a labeled chip joins that chip. The first of the
+/// two spaces after the name is its right side. The second is the left side of
+/// the next labeled chip, and stays dead when the next control is not one
+/// (`HJKL`, a key with no name, or the end of the row). A prefix space
+/// immediately before a labeled chip is that chip's left side.
 fn bind_chip_pads(chunks: &[Chunk]) -> Vec<Chunk> {
     let mut spaced = Vec::with_capacity(chunks.len());
     let mut i = 0;
@@ -390,8 +390,10 @@ fn bind_chip_pads(chunks: &[Chunk]) -> Vec<Chunk> {
             let click = chunks[i].hit.expect("labeled chip");
             spaced.push(chunks[i].clone());
             spaced.push(Chunk::plain_hit(" ", click));
-            let next = labeled_chip_at(chunks, i + 2).unwrap_or(click);
-            spaced.push(Chunk::plain_hit(" ", next));
+            match labeled_chip_at(chunks, i + 2) {
+                Some(next) => spaced.push(Chunk::plain_hit(" ", next)),
+                None => spaced.push(Chunk::plain(" ")),
+            }
             i += 2;
             continue;
         }
@@ -1057,6 +1059,85 @@ mod tests {
         let name_at = resize.start + 4;
         assert_ne!(idle_cells[name_at], reverse, "the name starts reversed");
         assert!(!idle.contains("38;5;255;48;5;255"));
+    }
+
+    fn side_pads(slice: &str) -> (usize, usize) {
+        let lead = slice.chars().take_while(|ch| *ch == ' ').count();
+        let trail = slice.chars().rev().take_while(|ch| *ch == ' ').count();
+        (lead, trail)
+    }
+
+    #[test]
+    fn every_labeled_chip_has_one_space_on_each_side() {
+        let chrome = Chrome {
+            bar: Ink::Bit(232),
+            ..Chrome::default()
+        };
+        let reverse = format!("22;{};{}", chrome.dark.fg(), chrome.light.bg());
+        for mode in [
+            "normal",
+            "locked",
+            "pane",
+            "tab",
+            "resize",
+            "move",
+            "scroll",
+            "session",
+            "tmux",
+            "search",
+            "enter_search",
+            "rename_pane",
+            "rename_tab",
+        ] {
+            for multi in [false, true] {
+                let (line, hits) = render_bar_with(mode, 240, multi, &chrome, None);
+                let text = visible(&line);
+                assert!(text.chars().count() <= 240, "{mode} {text}");
+                for hit in &hits {
+                    let body: String = text
+                        .chars()
+                        .skip(hit.start)
+                        .take(hit.end - hit.start)
+                        .collect();
+                    if body.contains(' ') {
+                        assert_eq!(
+                            side_pads(&body),
+                            (1, 1),
+                            "{mode} multi={multi} {body} in {text}"
+                        );
+                    } else {
+                        assert_eq!(side_pads(&body), (0, 0), "{mode} {body}");
+                    }
+                }
+                let labeled: Vec<_> = hits
+                    .iter()
+                    .filter(|hit| {
+                        text.chars()
+                            .skip(hit.start)
+                            .take(hit.end - hit.start)
+                            .any(|ch| ch == ' ')
+                    })
+                    .copied()
+                    .collect();
+                for hit in labeled {
+                    let cells =
+                        cell_sgr(&render_bar_with(mode, 240, multi, &chrome, Some(hit.start)).0);
+                    assert!(cells[hit.start..hit.end]
+                        .iter()
+                        .all(|cell| cell == &reverse));
+                    if hit.start > 0 {
+                        assert_ne!(
+                            cells[hit.start - 1],
+                            reverse,
+                            "{mode} lit the left neighbor"
+                        );
+                    }
+                    if hit.end < cells.len() {
+                        assert_ne!(cells[hit.end], reverse, "{mode} lit the right neighbor");
+                    }
+                }
+            }
+        }
     }
 
     #[test]
