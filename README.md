@@ -130,16 +130,7 @@ status-bar location="zellij:status-bar"
 
 Thank you for taking an interest in improving Zellij Status Bar Next-Generation.
 
-You will need [rustup](https://rust-lang.github.io/rustup/), Git and your platform's native build tools. This project pins the toolchain in [rust-toolchain.toml](rust-toolchain.toml); rustup reads that file and installs matching `rustc`, Cargo, rustfmt, Clippy and the `wasm32-wasip1` target.
-
-A packaged `rustc` or `cargo` from apt, dnf or Homebrew does not apply `rust-toolchain.toml`. Install rustup, then invoke the toolchain rustup selected:
-
-```sh
-"$(rustup which rustc)" --version
-"$(rustup which cargo)" --version
-```
-
-`rustup which` prints the binary for the active toolchain (from `rust-toolchain.toml` in this directory). Quoting the command substitution runs that binary even when another `rustc` or `cargo` is earlier on `PATH`.
+You will need Git, your platform's native build tools and the Rust tooling described in [rust-toolchain.toml](rust-toolchain.toml). We recommend rustup to manage your rust tooling, but install it using your system package manager rather than the dangerous methods on the rustup website ([ref](#references)).
 
 ### Linux
 
@@ -175,19 +166,28 @@ winget install --exact --id Microsoft.VisualStudio.2022.BuildTools --override "-
 winget install --exact --id Rustlang.Rustup
 ```
 
-Clone the project and build:
+Clone the project and build. On Linux and macOS:
+
+> [!NOTE]
+> If you do not require cross compilation, remove the `DYLD_LIBRARY_PATH="..."` part of all commands in this README.
 
 ```sh
 git clone https://github.com/fulldecent/zellij-status-bar-ng.git
 cd zellij-status-bar-ng
-"$(rustup which rustc)" --version
-"$(rustup which cargo)" --version
-"$(rustup which cargo)" check --locked
-"$(rustup which cargo)" build --locked
+export PATH="$(dirname "$(rustup which cargo)"):$PATH"
+export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux
+cargo check --locked
+cargo build --locked
 ```
 
-> [!NOTE]
-> Run those lines from this repository. `rust-toolchain.toml` is how the version is selected. If a check fails with “compiled by an incompatible version of rustc”, another compiler already wrote `target/`. That directory is gitignored. Remove it (`rm -rf target`) and run the same four lines again.
+In PowerShell:
+
+```powershell
+$bin = Split-Path (rustup which cargo)
+$env:PATH = "$bin;$env:PATH"
+cargo check --locked
+cargo build --locked
+```
 
 Run this directly with:
 
@@ -198,17 +198,32 @@ zellij --layout layout/dev.kdl
 ### Testing
 
 ```sh
-"$(rustup which cargo)" test --locked --target "$("$(rustup which rustc)" -vV | sed -n 's/^host: //p')"
-"$(rustup which cargo)" fmt --all -- --check
-"$(rustup which cargo)" clippy --all-targets --locked -- -D warnings
-"$(rustup which cargo)" build --release --locked
+export PATH="$(dirname "$(rustup which cargo)"):$PATH"
+export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux
+cargo test --locked --target "$(rustc -vV | sed -n 's/^host: //p')"
+cargo fmt --all -- --check
+cargo clippy --all-targets --locked -- -D warnings
+cargo build --release --locked
 ```
 
-`cargo test` runs the Rust tests in `src/` and `tests/widths.rs`. [tests/snapshot.sh](tests/snapshot.sh) builds the release wasm, runs every script in [shots/](shots/), and exits non-zero unless those bytes match the committed `shots/*.ansi.txt` files. SVG is traced. `diff` does not compare it. The 80-column picture is committed as [screenshot.svg](screenshot.svg) at the repository root. The other pictures are committed beside their YAML scripts.
+`cargo test` runs the Rust tests in `src/` and `tests/widths.rs`. The target in [.cargo/config.toml](.cargo/config.toml) is `wasm32-wasip1`, and that wasm cannot run these tests. [tests/snapshot.sh](tests/snapshot.sh) builds the release wasm, runs every script in [shots/](shots/), and exits non-zero unless those bytes match the committed `shots/*.ansi.txt` files. SVG is traced. `diff` does not compare it. The 80-column picture is committed as [screenshot.svg](screenshot.svg) at the repository root. The other pictures are committed beside their YAML scripts.
 
 ```sh
-"$(rustup which cargo)" install zellij-plugin-snapshot --version 0.2.2 --locked
+export PATH="$(dirname "$(rustup which cargo)"):$PATH"
+export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux
+cargo install zellij-plugin-snapshot --version 0.2.2 --locked
 sh tests/snapshot.sh
+```
+
+In PowerShell:
+
+```powershell
+$bin = Split-Path (rustup which cargo)
+$env:PATH = "$bin;$env:PATH"
+cargo test --locked --target "$((rustc -vV | Select-String '^host:').ToString().Split(' ')[1])"
+cargo fmt --all -- --check
+cargo clippy --all-targets --locked -- -D warnings
+cargo build --release --locked
 ```
 
 ```sh
@@ -248,6 +263,7 @@ Out of scope:
 ## References
 
 1. We use "Title Case" only for proper nouns, this includes the name of our project.
+1. We use a workaround so that rustup works without replacing your system Rust programs ([issue](https://github.com/rust-lang/rustup/issues/5025#issuecomment-6869331794)).
 1. This project is built based on [best practices documented in zellij-plugin-template](https://github.com/fulldecent/zellij-plugin-template), release v0.5.0.
 1. This project is built based on [best practices documented in rust-template](https://github.com/fulldecent/rust-template/), release v1.1.1.
 1. This project is built based on [best practices documented in project-template](https://github.com/fulldecent/project-template), release v1.4.1.
