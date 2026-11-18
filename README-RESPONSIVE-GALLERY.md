@@ -40,7 +40,7 @@ The word Tab sits at the far left, before `Ctrl +`.
 
 ## Mouse over
 
-Hovering a chip inverts that chip. At 80 columns the pointer is on `^N Resize`.
+Hovering a labeled chip reverses that whole chip. At 80 columns the pointer is on `^N Resize`.
 
 ![Mouse over Resize at 80 columns](shots/hover.svg)
 

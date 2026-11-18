@@ -82,7 +82,7 @@ Tab mode, 160 columns:
 
 ![Tab mode at 160 columns](shots/tab.svg)
 
-Click a chip to run that action. Hover inverts the hit target’s colors. A combo such as `⌥←↓↑→` highlights and clicks one arrow. A chip such as `^N Resize` is nine cells, all one target.
+Click a chip to run that action. Hover reverses a labeled chip, the key and the name together, including the space on each side. A key with no name is reversed, and it turns normal on hover. A combo such as `⌥←↓↑→` highlights and clicks one arrow. A chip such as `^N Resize` is eleven cells, all one target.
 
 Mouse over `^N Resize`, 80 columns:
 
