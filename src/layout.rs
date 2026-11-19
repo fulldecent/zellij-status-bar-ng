@@ -335,6 +335,96 @@ impl Ink {
     }
 }
 
+fn is_chip_label(chunk: &Chunk) -> bool {
+    chunk.hit.is_some() && chunk.style == Style::Plain && chunk.text.chars().any(|ch| ch != ' ')
+}
+
+fn click_has_label(chunks: &[Chunk], click: Click) -> bool {
+    chunks.iter().any(|chunk| {
+        chunk.hit == Some(click)
+            && chunk.style == Style::Plain
+            && chunk.text.chars().any(|ch| ch != ' ')
+    })
+}
+
+/// Click of a labeled chip whose key chunk is `chunks[idx]`.
+fn labeled_chip_at(chunks: &[Chunk], idx: usize) -> Option<Click> {
+    let click = chunks.get(idx)?.hit?;
+    if !click_has_label(chunks, click) {
+        return None;
+    }
+    // The label shares this click and appears before a different click.
+    for chunk in chunks.iter().skip(idx + 1) {
+        if chunk.hit == Some(click)
+            && chunk.style == Style::Plain
+            && chunk.text.chars().any(|ch| ch != ' ')
+        {
+            return Some(click);
+        }
+        if chunk.hit.is_some() && chunk.hit != Some(click) {
+            return None;
+        }
+        if chunk.text.chars().any(|ch| ch != ' ')
+            && chunk.hit != Some(click)
+            && chunk.style != Style::Reverse
+        {
+            return None;
+        }
+    }
+    None
+}
+
+/// One space on each side of a labeled chip joins that chip. The first of the
+/// two spaces after the name is its right side. The second is the left side of
+/// the next labeled chip, and stays dead when the next control is not one
+/// (`HJKL`, a key with no name, or the end of the row). A prefix space
+/// immediately before a labeled chip is that chip's left side.
+fn bind_chip_pads(chunks: &[Chunk]) -> Vec<Chunk> {
+    let mut spaced = Vec::with_capacity(chunks.len());
+    let mut i = 0;
+    while i < chunks.len() {
+        let separator = chunks
+            .get(i + 1)
+            .is_some_and(|chunk| chunk.hit.is_none() && chunk.text == "  ");
+        if separator && is_chip_label(&chunks[i]) {
+            let click = chunks[i].hit.expect("labeled chip");
+            spaced.push(chunks[i].clone());
+            spaced.push(Chunk::plain_hit(" ", click));
+            match labeled_chip_at(chunks, i + 2) {
+                Some(next) => spaced.push(Chunk::plain_hit(" ", next)),
+                None => spaced.push(Chunk::plain(" ")),
+            }
+            i += 2;
+            continue;
+        }
+        spaced.push(chunks[i].clone());
+        i += 1;
+    }
+
+    let mut out = Vec::with_capacity(spaced.len());
+    let mut i = 0;
+    while i < spaced.len() {
+        // A help title that does not fit is two spaces. That last space is
+        // still the left side of the following chip.
+        let peel = spaced[i].hit.is_none() && spaced[i].text.ends_with(' ');
+        if peel {
+            if let Some(click) = labeled_chip_at(&spaced, i + 1) {
+                let mut prefix = spaced[i].clone();
+                prefix.text.pop();
+                if !prefix.text.is_empty() {
+                    out.push(prefix);
+                }
+                out.push(Chunk::plain_hit(" ", click));
+                i += 1;
+                continue;
+            }
+        }
+        out.push(spaced[i].clone());
+        i += 1;
+    }
+    out
+}
+
 fn hovered_click(chunks: &[Chunk], col: usize) -> Option<Click> {
     let mut x = 0;
     for chunk in chunks {
@@ -349,19 +439,27 @@ fn hovered_click(chunks: &[Chunk], col: usize) -> Option<Click> {
 
 fn paint(chunks: &[Chunk], chrome: &Chrome, hover: Option<usize>) -> String {
     let active = hover.and_then(|col| hovered_click(chunks, col));
+    // A labeled chip reverses the key and the name together. A key with no
+    // name still flips from reversed to normal.
+    let labeled = active.is_some_and(|click| click_has_label(chunks, click));
     let mut out = String::new();
     for chunk in chunks {
         out.push_str("\u{1b}[0m");
-        let invert = chunk.hit.is_some() && chunk.hit == active;
-        let params = match (chunk.style, invert) {
-            (Style::Plain, false) => format!("22;{};{}", chrome.light.fg(), chrome.bar.bg()),
-            (Style::Plain, true) => format!("22;{};{}", chrome.bar.fg(), chrome.light.bg()),
-            (Style::Bold, false) => format!("1;{};{}", chrome.ctrl.fg(), chrome.bar.bg()),
-            (Style::Bold, true) => format!("1;{};{}", chrome.bar.fg(), chrome.ctrl.bg()),
-            (Style::BoldOrange, false) => format!("22;{};{}", chrome.alt.fg(), chrome.bar.bg()),
-            (Style::BoldOrange, true) => format!("22;{};{}", chrome.bar.fg(), chrome.alt.bg()),
-            (Style::Reverse, false) => format!("22;{};{}", chrome.dark.fg(), chrome.light.bg()),
-            (Style::Reverse, true) => format!("22;{};{}", chrome.light.fg(), chrome.dark.bg()),
+        let same = chunk.hit.is_some() && chunk.hit == active;
+        let params = if same && labeled {
+            format!("22;{};{}", chrome.dark.fg(), chrome.light.bg())
+        } else {
+            let invert = same;
+            match (chunk.style, invert) {
+                (Style::Plain, false) => format!("22;{};{}", chrome.light.fg(), chrome.bar.bg()),
+                (Style::Plain, true) => format!("22;{};{}", chrome.bar.fg(), chrome.light.bg()),
+                (Style::Bold, false) => format!("1;{};{}", chrome.ctrl.fg(), chrome.bar.bg()),
+                (Style::Bold, true) => format!("1;{};{}", chrome.bar.fg(), chrome.ctrl.bg()),
+                (Style::BoldOrange, false) => format!("22;{};{}", chrome.alt.fg(), chrome.bar.bg()),
+                (Style::BoldOrange, true) => format!("22;{};{}", chrome.bar.fg(), chrome.alt.bg()),
+                (Style::Reverse, false) => format!("22;{};{}", chrome.dark.fg(), chrome.light.bg()),
+                (Style::Reverse, true) => format!("22;{};{}", chrome.light.fg(), chrome.dark.bg()),
+            }
         };
         out.push_str(&format!("\u{1b}[{params}m"));
         out.push_str(&chunk.text);
@@ -395,11 +493,12 @@ fn hits_of(chunks: &[Chunk]) -> Vec<Hit> {
 }
 
 fn finish(
-    mut chunks: Vec<Chunk>,
+    chunks: Vec<Chunk>,
     cols: usize,
     chrome: &Chrome,
     hover: Option<usize>,
 ) -> (String, Vec<Hit>) {
+    let mut chunks = bind_chip_pads(&chunks);
     let gap = cols.saturating_sub(width(&chunks));
     if gap > 0 {
         chunks.push(Chunk::plain(" ".repeat(gap)));
@@ -749,6 +848,34 @@ mod tests {
         visible(&render_bar(mode, cols, multi))
     }
 
+    fn cell_sgr(rendered: &str) -> Vec<String> {
+        let mut cells = Vec::new();
+        let mut params = String::new();
+        let mut chars = rendered.chars().peekable();
+        while let Some(ch) = chars.next() {
+            if ch == '\u{1b}' {
+                if chars.peek() == Some(&'[') {
+                    chars.next();
+                    let mut seq = String::new();
+                    for c in chars.by_ref() {
+                        if c.is_ascii_alphabetic() {
+                            break;
+                        }
+                        seq.push(c);
+                    }
+                    if seq == "0" {
+                        params.clear();
+                    } else {
+                        params = seq;
+                    }
+                }
+                continue;
+            }
+            cells.push(params.clone());
+        }
+        cells
+    }
+
     #[test]
     fn never_wider_than_the_screen() {
         for cols in 0..240 {
@@ -780,12 +907,16 @@ mod tests {
     #[test]
     fn prefixes_are_bold_and_names_are_title_case() {
         let raw = render_bar("normal", 220, false);
-        assert!(raw.contains("\u{1b}[1;38;5;255;48;5;16m Ctrl + "));
-        assert!(raw.contains("\u{1b}[22;38;5;166;48;5;16mAlt + "));
+        assert!(raw.contains("\u{1b}[1;38;5;255;48;5;16m Ctrl +"));
+        assert!(raw.contains("\u{1b}[22;38;5;166;48;5;16mAlt +"));
         assert!(raw.contains("\u{1b}[22;38;5;16;48;5;245m^G"));
         assert!(raw.contains("\u{1b}[22;38;5;245;48;5;16m Lock"));
         assert!(!raw.contains("\u{1b}[1;38;5;166m"));
         let text = visible(&raw);
+        assert!(text.contains(" Ctrl + ^G Lock"), "{text}");
+        assert!(text.contains("Alt + ⌥N"), "{text}");
+        assert!(!text.contains("Ctrl +  ^"), "{text}");
+        assert!(!text.contains("Alt +  ⌥"), "{text}");
         assert!(text.contains("^G Lock"));
         assert!(text.contains("^Q Quit"));
         assert!(!text.contains("LOCK"));
@@ -859,18 +990,25 @@ mod tests {
     }
 
     #[test]
-    fn resize_chip_is_nine_cells() {
+    fn resize_chip_includes_the_side_spaces() {
         let hits = render_bar_with("normal", 220, false, &Chrome::default(), None).1;
         let hit = hits
             .iter()
             .find(|h| h.click == Click::Mode("resize"))
             .expect("resize chip");
-        assert_eq!(hit.end - hit.start, 9);
         let text = shown("normal", 220, false);
-        assert_eq!(
-            &text.chars().skip(hit.start).take(9).collect::<String>(),
-            "^N Resize"
-        );
+        let slice: String = text
+            .chars()
+            .skip(hit.start)
+            .take(hit.end - hit.start)
+            .collect();
+        assert_eq!(slice, " ^N Resize ");
+        assert_eq!(hit.end - hit.start, 11);
+        let tab = hits
+            .iter()
+            .find(|h| h.click == Click::Mode("tab"))
+            .expect("tab chip");
+        assert_eq!(tab.end, hit.start, "the gap between chips is not dead");
     }
 
     #[test]
@@ -892,18 +1030,190 @@ mod tests {
     }
 
     #[test]
-    fn hover_inverts_chip_without_new_colors() {
-        let chrome = Chrome::default();
-        let idle = render_bar_with("normal", 220, false, &chrome, None).0;
-        let hits = render_bar_with("normal", 220, false, &chrome, None).1;
+    fn hover_reverses_the_whole_labeled_chip() {
+        let chrome = Chrome {
+            bar: Ink::Bit(232),
+            ..Chrome::default()
+        };
+        let reverse = format!("22;{};{}", chrome.dark.fg(), chrome.light.bg());
+        let (idle, hits) = render_bar_with("normal", 220, false, &chrome, None);
         let resize = hits
             .iter()
             .find(|h| h.click == Click::Mode("resize"))
             .unwrap();
-        let hovered = render_bar_with("normal", 220, false, &chrome, Some(resize.start)).0;
-        assert_ne!(idle, hovered);
-        assert!(hovered.contains(&format!("22;{};{}", chrome.light.fg(), chrome.dark.bg())));
-        assert!(!hovered.contains("38;5;255;48;5;255"));
+        let idle_cells = cell_sgr(&idle);
+        for col in resize.start..resize.end {
+            let hovered = render_bar_with("normal", 220, false, &chrome, Some(col)).0;
+            let cells = cell_sgr(&hovered);
+            assert!(
+                cells[resize.start..resize.end]
+                    .iter()
+                    .all(|cell| cell == &reverse),
+                "hover {col} left part of the chip unreversed"
+            );
+            if resize.start > 0 {
+                assert_ne!(cells[resize.start - 1], reverse);
+            }
+            if resize.end < cells.len() {
+                assert_ne!(cells[resize.end], reverse);
+            }
+        }
+        let name_at = resize.start + 4;
+        assert_ne!(idle_cells[name_at], reverse, "the name starts reversed");
+        assert!(!idle.contains("38;5;255;48;5;255"));
+    }
+
+    #[test]
+    fn narrow_rename_pane_keeps_the_space_before_esc() {
+        let (line, hits) = render_bar_with("rename_pane", 12, false, &Chrome::default(), None);
+        let text = visible(&line);
+        let hit = hits
+            .iter()
+            .find(|hit| hit.click == Click::DoneRenamePane)
+            .unwrap_or_else(|| panic!("missing done chip in {text}"));
+        let esc = text.find("ESC").expect("ESC");
+        assert!(
+            hit.start < esc && hit.end > esc,
+            "space before ESC is outside the chip: {text}"
+        );
+        assert_eq!(text.chars().nth(esc - 1), Some(' '));
+    }
+
+    fn side_pads(slice: &str) -> (usize, usize) {
+        let lead = slice.chars().take_while(|ch| *ch == ' ').count();
+        let trail = slice.chars().rev().take_while(|ch| *ch == ' ').count();
+        (lead, trail)
+    }
+
+    #[test]
+    fn every_labeled_chip_has_one_space_on_each_side() {
+        let chrome = Chrome {
+            bar: Ink::Bit(232),
+            ..Chrome::default()
+        };
+        let reverse = format!("22;{};{}", chrome.dark.fg(), chrome.light.bg());
+        for mode in [
+            "normal",
+            "locked",
+            "pane",
+            "tab",
+            "resize",
+            "move",
+            "scroll",
+            "session",
+            "tmux",
+            "search",
+            "enter_search",
+            "rename_pane",
+            "rename_tab",
+        ] {
+            for multi in [false, true] {
+                let (line, hits) = render_bar_with(mode, 240, multi, &chrome, None);
+                let text = visible(&line);
+                assert!(text.chars().count() <= 240, "{mode} {text}");
+                for hit in &hits {
+                    let body: String = text
+                        .chars()
+                        .skip(hit.start)
+                        .take(hit.end - hit.start)
+                        .collect();
+                    if body.contains(' ') {
+                        assert_eq!(
+                            side_pads(&body),
+                            (1, 1),
+                            "{mode} multi={multi} {body} in {text}"
+                        );
+                    } else {
+                        assert_eq!(side_pads(&body), (0, 0), "{mode} {body}");
+                    }
+                }
+                let labeled: Vec<_> = hits
+                    .iter()
+                    .filter(|hit| {
+                        text.chars()
+                            .skip(hit.start)
+                            .take(hit.end - hit.start)
+                            .any(|ch| ch == ' ')
+                    })
+                    .copied()
+                    .collect();
+                for hit in labeled {
+                    let cells =
+                        cell_sgr(&render_bar_with(mode, 240, multi, &chrome, Some(hit.start)).0);
+                    assert!(cells[hit.start..hit.end]
+                        .iter()
+                        .all(|cell| cell == &reverse));
+                    if hit.start > 0 {
+                        assert_ne!(
+                            cells[hit.start - 1],
+                            reverse,
+                            "{mode} lit the left neighbor"
+                        );
+                    }
+                    if hit.end < cells.len() {
+                        assert_ne!(cells[hit.end], reverse, "{mode} lit the right neighbor");
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn key_only_hover_turns_the_key_normal() {
+        let chrome = Chrome {
+            bar: Ink::Bit(232),
+            ..Chrome::default()
+        };
+        let mut found = false;
+        for cols in 20..80 {
+            let text = shown("normal", cols, false);
+            if !text.contains("^G  ^P  ") || text.contains("Lock") {
+                continue;
+            }
+            let (idle, hits) = render_bar_with("normal", cols, false, &chrome, None);
+            let lock = hits
+                .iter()
+                .find(|h| h.click == Click::Mode("locked"))
+                .expect("lock key");
+            let slice: String = text
+                .chars()
+                .skip(lock.start)
+                .take(lock.end - lock.start)
+                .collect();
+            assert_eq!(slice, "^G", "{text}");
+            assert!(text[lock.end..].starts_with("  "), "{text}");
+            let normal = format!("22;{};{}", chrome.light.fg(), chrome.dark.bg());
+            let plain = format!("22;{};{}", chrome.light.fg(), chrome.bar.bg());
+            let hovered = render_bar_with("normal", cols, false, &chrome, Some(lock.start)).0;
+            let cells = cell_sgr(&hovered);
+            assert_eq!(cells[lock.start], normal);
+            assert_eq!(cells[lock.start + 1], normal);
+            assert_eq!(
+                cells[lock.end], plain,
+                "the space after a key is not part of it"
+            );
+            assert_ne!(cell_sgr(&idle)[lock.start], normal);
+            found = true;
+            break;
+        }
+        assert!(found, "no key-only row");
+    }
+
+    #[test]
+    fn ctrl_space_is_the_first_chips_left_side() {
+        let text = shown("normal", 220, false);
+        let hits = render_bar_with("normal", 220, false, &Chrome::default(), None).1;
+        let lock = hits
+            .iter()
+            .find(|h| h.click == Click::Mode("locked"))
+            .unwrap();
+        let slice: String = text
+            .chars()
+            .skip(lock.start)
+            .take(lock.end - lock.start)
+            .collect();
+        assert!(slice.starts_with(" ^G Lock"), "{slice}");
+        assert!(text[..lock.start].ends_with("Ctrl +"), "{text}");
     }
 
     #[test]
@@ -928,7 +1238,7 @@ mod tests {
                 "{mode} heading should be orange: {raw}"
             );
             assert!(
-                raw.contains("\u{1b}[1;38;5;255;48;5;16m Ctrl + "),
+                raw.contains("\u{1b}[1;38;5;255;48;5;16m Ctrl +"),
                 "{mode} should keep a bold Ctrl + after the heading"
             );
         }
