@@ -404,14 +404,16 @@ fn bind_chip_pads(chunks: &[Chunk]) -> Vec<Chunk> {
     let mut out = Vec::with_capacity(spaced.len());
     let mut i = 0;
     while i < spaced.len() {
-        let peel = spaced[i].hit.is_none()
-            && spaced[i].text.ends_with(' ')
-            && spaced[i].text.chars().any(|ch| ch != ' ');
+        // A help title that does not fit is two spaces. That last space is
+        // still the left side of the following chip.
+        let peel = spaced[i].hit.is_none() && spaced[i].text.ends_with(' ');
         if peel {
             if let Some(click) = labeled_chip_at(&spaced, i + 1) {
                 let mut prefix = spaced[i].clone();
                 prefix.text.pop();
-                out.push(prefix);
+                if !prefix.text.is_empty() {
+                    out.push(prefix);
+                }
                 out.push(Chunk::plain_hit(" ", click));
                 i += 1;
                 continue;
@@ -1059,6 +1061,22 @@ mod tests {
         let name_at = resize.start + 4;
         assert_ne!(idle_cells[name_at], reverse, "the name starts reversed");
         assert!(!idle.contains("38;5;255;48;5;255"));
+    }
+
+    #[test]
+    fn narrow_rename_pane_keeps_the_space_before_esc() {
+        let (line, hits) = render_bar_with("rename_pane", 12, false, &Chrome::default(), None);
+        let text = visible(&line);
+        let hit = hits
+            .iter()
+            .find(|hit| hit.click == Click::DoneRenamePane)
+            .unwrap_or_else(|| panic!("missing done chip in {text}"));
+        let esc = text.find("ESC").expect("ESC");
+        assert!(
+            hit.start < esc && hit.end > esc,
+            "space before ESC is outside the chip: {text}"
+        );
+        assert_eq!(text.chars().nth(esc - 1), Some(' '));
     }
 
     fn side_pads(slice: &str) -> (usize, usize) {
