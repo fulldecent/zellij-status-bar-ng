@@ -4,34 +4,32 @@
 # zellij-plugin-snapshot is a command. [dependencies] and [dev-dependencies]
 # link a library into the wasm or into `cargo test`, so they leave this binary
 # uninstalled. Install the pinned release first:
-#   rustup run "$(rustup show active-toolchain | awk '{print $1}')" cargo install zellij-plugin-snapshot --version 0.2.2 --locked
+#   export PATH="$(dirname "$(rustup which cargo)"):$PATH"
+#   export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux
+#   cargo install zellij-plugin-snapshot --version 0.2.2 --locked
 # https://github.com/fulldecent/zellij-plugin-snapshot
 set -eu
 
 root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 cd "$root"
 
-# Homebrew rust ignores rust-toolchain.toml. `rustup which cargo` is the
-# inner toolchain binary (often the default stable) and does not apply this
-# directory's rust-toolchain.toml or auto-install wasm32-wasip1.
-run_cargo() {
-  if command -v rustup >/dev/null 2>&1; then
-    rustup=$(command -v rustup)
-    toolchain=$("$rustup" show active-toolchain)
-    toolchain=${toolchain%% *}
-    "$rustup" run "$toolchain" cargo "$@"
-  else
-    cargo "$@"
-  fi
-}
-
-# `cargo install` places zellij-plugin-snapshot in ~/.cargo/bin.
+# Put the toolchain from rust-toolchain.toml first on PATH.
 PATH="${HOME}/.cargo/bin:${PATH}"
 export PATH
+if command -v rustup >/dev/null 2>&1; then
+  rustup show >/dev/null
+  cargo_bin=$(rustup which cargo)
+  bin=$(dirname "$cargo_bin")
+  PATH="$bin:$PATH"
+  DYLD_LIBRARY_PATH="$(CDPATH= cd -- "$bin/../lib" && pwd)${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+  export PATH DYLD_LIBRARY_PATH
+fi
 
 if ! command -v zellij-plugin-snapshot >/dev/null 2>&1; then
   echo "zellij-plugin-snapshot 0.2.2 is not on PATH." >&2
-  echo 'rustup run "$(rustup show active-toolchain | awk "{print \$1}")" cargo install zellij-plugin-snapshot --version 0.2.2 --locked' >&2
+  echo 'export PATH="$(dirname "$(rustup which cargo)"):$PATH"' >&2
+  echo 'export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux' >&2
+  echo 'cargo install zellij-plugin-snapshot --version 0.2.2 --locked' >&2
   exit 1
 fi
 
@@ -39,10 +37,7 @@ fi
 # Name the target here so this script still builds the plugin wasm if that
 # default is removed. `cargo test` cannot do this job: it locks the target
 # directory, and it runs the host harness rather than the plugin wasm.
-if command -v rustup >/dev/null 2>&1; then
-  "$(command -v rustup)" target add wasm32-wasip1
-fi
-run_cargo build --release --locked --target wasm32-wasip1
+cargo build --release --locked --target wasm32-wasip1
 
 out=$(mktemp -d)
 trap 'rm -rf "$out"' EXIT
