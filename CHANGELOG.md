@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.1](https://github.com/fulldecent/zellij-status-bar-ng/compare/v1.1.0...v1.1.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* build wasm when PATH rustc has no wasm target ([880fc26](https://github.com/fulldecent/zellij-status-bar-ng/commit/880fc26d5a785ba2ca1e032b1b481609be7ffc72))
+* install the toolchain before selecting cargo ([94d2ce1](https://github.com/fulldecent/zellij-status-bar-ng/commit/94d2ce1b84603782d21227ac0ecb773a99406411))
+* keep one space on each side of a labeled chip ([a1f835b](https://github.com/fulldecent/zellij-status-bar-ng/commit/a1f835b42cf96a59919d7dd739c4183c2877ec82))
+* keep the space before ESC when the help title is hidden ([0122538](https://github.com/fulldecent/zellij-status-bar-ng/commit/0122538ffb0a194563e3a836cf32cca470973a5c))
+* reverse a labeled chip as one target ([20b27aa](https://github.com/fulldecent/zellij-status-bar-ng/commit/20b27aa0eaa22bebf89cfca33b0366581d812692))
+* stop the snapshot script when rustup which fails ([8cef6b8](https://github.com/fulldecent/zellij-status-bar-ng/commit/8cef6b8ef63b46780fcc302bf1475410e466540f))
+
 ## [1.1.0](https://github.com/fulldecent/zellij-status-bar-ng/compare/v1.0.0...v1.1.0) (2026-10-10)
 
 
